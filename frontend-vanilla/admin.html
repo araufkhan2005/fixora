@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ServiceHub - Admin Control Center</title>
+    
+    <!-- ⚡ BRAND FAVICON -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2280%22>🛠️</text></svg>">
+
+    <!-- 🟢 UI Kits & Typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* 🎨 THEME MATCHED TO MAIN BRAND */
+        :root {
+            --primary-blue: #2563EB;
+            --accent-orange: #F97316;
+            --bg-slate: #F8FAFC;
+            --text-main: #0F172A;
+            --text-muted: #64748B;
+            --border-color: #E2E8F0;
+            --radius-md: 16px;
+            --transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-slate);
+            color: var(--text-main);
+            overflow-x: hidden;
+        }
+
+        /* 🌐 NAVBAR */
+        .navbar {
+            background-color: #ffffff;
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 0;
+        }
+        .navbar-brand {
+            font-weight: 800;
+            font-size: 1.3rem;
+            color: var(--text-main) !important;
+        }
+        .navbar-brand span { color: var(--primary-blue); }
+        .navbar-brand i { color: var(--accent-orange); }
+
+        /* 📊 METRICS CARDS */
+        .stat-card {
+            background-color: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.01);
+            transition: var(--transition);
+            height: 100%;
+        }
+        .stat-icon {
+            width: 46px; height: 46px;
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem;
+            margin-bottom: 12px;
+        }
+        .icon-blue { background: rgba(37, 99, 235, 0.08); color: var(--primary-blue); }
+        .icon-orange { background: rgba(249, 115, 22, 0.08); color: var(--accent-orange); }
+
+        /* 📋 DESKTOP TABLE STYLE */
+        .data-panel {
+            background-color: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.02);
+        }
+        .table th {
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-size: 0.78rem;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid var(--border-color);
+            padding: 14px 12px;
+        }
+        .table td {
+            padding: 16px 12px;
+            font-size: 0.9rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        /* 📱 MOBILE RESPONSIVE CARDS STYLE */
+        .mobile-request-card {
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.01);
+        }
+        .mobile-card-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+        }
+        .mobile-card-row:last-child {
+            margin-bottom: 0;
+            padding-top: 10px;
+            border-top: 1px dashed var(--border-color);
+        }
+        .mobile-label {
+            font-weight: 700;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+        }
+
+        /* STATUS BADGES */
+        .badge-status {
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.78rem;
+        }
+        .status-pending { background-color: rgba(249, 115, 22, 0.1); color: var(--accent-orange); }
+        .status-assigned { background-color: rgba(37, 99, 235, 0.1); color: var(--primary-blue); }
+
+        /* UI INPUT ELEMENTS */
+        .select-tech-pro {
+            font-size: 0.85rem;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background-color: var(--bg-slate);
+            color: var(--text-main);
+            font-weight: 500;
+            outline: none;
+        }
+        .btn-allocate {
+            background-color: var(--primary-blue);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: var(--transition);
+        }
+        .btn-allocate:hover { background-color: var(--text-main); }
+        .btn-map-view { color: var(--primary-blue); text-decoration: none; font-weight: 600; }
+    </style>
+</head>
+<body>
+
+    <!-- 🌐 NAVBAR -->
+    <nav class="navbar sticky-top">
+        <div class="container-fluid px-3 px-md-4">
+            <a class="navbar-brand" href="#">
+                <i class="fa-solid fa-screwdriver-wrench me-2"></i><span>Service</span>Hub Central Panel
+            </a>
+            <span class="badge bg-light text-success border fw-bold" onclick="fetchIncomingQueue()", style="cursor:pointer;">
+                <i class="fa-solid fa-rotate me-1"></i> Refresh Grid
+            </span>
+        </div>
+    </nav>
+
+    <!-- 📊 METRICS GRID -->
+    <div class="container-fluid px-3 px-md-4 mt-4">
+        <div class="row g-3">
+            <div class="col-6 col-md-4">
+                <div class="stat-card">
+                    <div class="stat-icon icon-blue"><i class="fa-solid fa-folder-open"></i></div>
+                    <h6 class="text-muted fw-semibold mb-1 small">Total Requests</h6>
+                    <h2 class="fw-bold m-0 fs-3" id="totalRequestsCount">0</h2>
+                </div>
+            </div>
+            <div class="col-6 col-md-4">
+                <div class="stat-card">
+                    <div class="stat-icon icon-orange"><i class="fa-solid fa-clock-rotate-left"></i></div>
+                    <h6 class="text-muted fw-semibold mb-1 small">Pending Clear</h6>
+                    <h2 class="fw-bold m-0 fs-3" id="pendingRequestsCount">0</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 📋 OPERATIONS QUEUE MAIN CONTAINER -->
+    <div class="container-fluid px-3 px-md-4 my-4">
+        
+        <div class="mb-4">
+            <h4 class="fw-bold m-0 text-dark">Incoming Service Queue</h4>
+            <p class="text-muted small m-0 mt-1">Real-time dynamic database tracking system.</p>
+        </div>
+
+        <!-- 🖥️ DESKTOP VIEW -->
+        <div class="d-none d-md-block">
+            <div class="card data-panel border-0">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Client Name</th>
+                                <th>Contact Line</th>
+                                <th>Appliance Domain</th>
+                                <th>Address & Location</th>
+                                <th>Current Status</th>
+                                <th>Assign Expert</th>
+                                <th>Execution</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminQueueTable">
+                            <tr>
+                                <td colspan="7" class="text-center py-4 text-muted">
+                                    <i class="fa-solid fa-spinner fa-spin me-2"></i> Fetching records from MongoDB...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 📱 MOBILE VIEW -->
+        <div class="d-block d-md-none" id="adminMobileQueue">
+            <!-- Mobile cards inject space -->
+        </div>
+
+    </div>
+
+    <!-- 🟢 SCRIPTS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // HARDCODED TECHNICIANS DATABASE LIST FOR MANUAL MAPPING
+        const technicianList = [
+            { name: "Ramesh Kumar (AC Expert)", domain: "AC" },
+            { name: "Suresh Patel (Fridge Pro)", domain: "Refrigerator" },
+            { name: "Amit Verma (Motor Tech)", domain: "Washing Machine" },
+            { name: "Vijay Shah (RO Specialist)", domain: "RO Water Purifier" },
+            { name: "Karan Johar (Electrician)", domain: "Electrician" },
+            { name: "Nitin Gadkari (Plumber)", domain: "Plumber" }
+        ];
+
+        // API URL Configuration (Update according to your backend environment port)
+        const BASE_API_URL = "http://localhost:5000/api/services";
+
+        document.addEventListener('DOMContentLoaded', fetchIncomingQueue);
+
+        // ==========================================
+        // 📥 FETCH ALL DATA PIPELINE FROM BACKEND
+        // ==========================================
+        async function fetchIncomingQueue() {
+            try {
+                const response = await fetch(BASE_API_URL);
+                const data = await response.json();
+
+                const desktopTable = document.getElementById('adminQueueTable');
+                const mobileQueue = document.getElementById('adminMobileQueue');
+
+                // Counters computation
+                let totalCount = data.length;
+                let pendingCount = data.filter(item => item.status === 'Pending' || !item.status).length;
+
+                document.getElementById('totalRequestsCount').innerText = totalCount;
+                document.getElementById('pendingRequestsCount').innerText = pendingCount;
+
+                if (totalCount === 0) {
+                    desktopTable.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted">🎉 No active requests found in the system database.</td></tr>`;
+                    mobileQueue.innerHTML = `<p class="text-center text-muted py-4">🎉 No active requests found.</p>`;
+                    return;
+                }
+
+                let desktopHtml = "";
+                let mobileHtml = "";
+
+                data.forEach(item => {
+                    const statusClass = item.status === 'Assigned' ? 'status-assigned' : 'status-pending';
+                    const displayStatus = item.status || 'Pending';
+                    const bookingId = item._id;
+
+                    // Building location maps links dynamically based on coordinates database values
+                    const mapsLink = (item.latitude && item.longitude) 
+                        ? `https://www.google.com/maps?q=${item.latitude},${item.longitude}` 
+                        : "#";
+
+                    // Dropdown elements creation loop matching the category context
+                    let techOptions = `<option disabled ${!item.technician ? 'selected' : ''}>Select Tech...</option>`;
+                    technicianList.forEach(tech => {
+                        const isSelected = item.technician === tech.name ? 'selected' : '';
+                        techOptions += `<option value="${tech.name}" ${isSelected}>${tech.name}</option>`;
+                    });
+
+                    // 1. Desktop Row Mapping
+                    desktopHtml += `
+                        <tr>
+                            <td class="fw-bold text-dark">${item.clientName}</td>
+                            <td>${item.phone}</td>
+                            <td><span class="badge bg-light text-dark border">${item.serviceType}</span></td>
+                            <td>
+                                <small class="d-block text-muted" style="max-width:200px; white-space:normal;">${item.address}</small>
+                                ${mapsLink !== "#" ? `<a href="${mapsLink}" target="_blank" class="btn-map-view small"><i class="fa-solid fa-map-location-dot me-1"></i> View GPS Map</a>` : ''}
+                            </td>
+                            <td><span class="badge-status ${statusClass}" id="status-desktop-${bookingId}">${displayStatus}</span></td>
+                            <td>
+                                <select class="select-tech-pro" id="tech-desktop-${bookingId}">
+                                    ${techOptions}
+                                </select>
+                            </td>
+                            <td>
+                                <button class="btn-allocate" onclick="allocateTechnician('${bookingId}', 'desktop')">Allocate</button>
+                            </td>
+                        </tr>
+                    `;
+
+                    // 2. Mobile Responsive Card Mapping
+                    mobileHtml += `
+                        <div class="mobile-request-card">
+                            <div class="mobile-card-row">
+                                <span class="mobile-label">Client</span>
+                                <span class="fw-bold text-dark">${item.clientName}</span>
+                            </div>
+                            <div class="mobile-card-row">
+                                <span class="mobile-label">Contact</span>
+                                <span>${item.phone}</span>
+                            </div>
+                            <div class="mobile-card-row">
+                                <span class="mobile-label">Domain</span>
+                                <span class="badge bg-light text-dark border">${item.serviceType}</span>
+                            </div>
+                            <div class="mobile-card-row">
+                                <span class="mobile-label">Location</span>
+                                <div class="text-end" style="max-width:60%;">
+                                    <small class="d-block text-muted mb-1">${item.address}</small>
+                                    ${mapsLink !== "#" ? `<a href="${mapsLink}" target="_blank" class="btn-map-view small"><i class="fa-solid fa-map-location-dot me-1"></i> View GPS Map</a>` : ''}
+                                </div>
+                            </div>
+                            <div class="mobile-card-row">
+                                <span class="mobile-label">Status</span>
+                                <span class="badge-status ${statusClass}" id="status-mobile-${bookingId}">${displayStatus}</span>
+                            </div>
+                            <div class="mobile-card-row align-items-center">
+                                <select class="select-tech-pro py-2" id="tech-mobile-${bookingId}" style="width:60%;">
+                                    ${techOptions}
+                                </select>
+                                <button class="btn-allocate py-2" style="width:35%;" onclick="allocateTechnician('${bookingId}', 'mobile')">Allocate</button>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                desktopTable.innerHTML = desktopHtml;
+                mobileQueue.innerHTML = mobileHtml;
+
+            } catch (error) {
+                console.error("Database connection failure:", error);
+                alert("❌ Server sync validation failed. Please make sure your Node.js server engine is running.");
+            }
+        }
+
+        // ==========================================
+        // 📤 UPDATE ALLOCATION PIPELINE (MANUAL TRIGGER)
+        // ==========================================
+        async function allocateTechnician(id, interfaceType) {
+            const selectElement = document.getElementById(`tech-${interfaceType}-${id}`);
+            const selectedTechnician = selectElement.value;
+
+            if (!selectedTechnician || selectedTechnician.startsWith("Select Tech")) {
+                alert("⚠️ Please select a valid certified provider from the mapping list before execution!");
+                return;
+            }
+
+            try {
+                // Hitting backend target status change updates API
+                const response = await fetch(`${BASE_API_URL}/allocate/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        technician: selectedTechnician,
+                        status: "Assigned"
+                    })
+                });
+
+                if (response.ok) {
+                    alert(`🚀 Task successfully mapped to: ${selectedTechnician}`);
+                    
+                    // Live UI element visual values tuning without complete grid reload
+                    const deskBadge = document.getElementById(`status-desktop-${id}`);
+                    const mobBadge = document.getElementById(`status-mobile-${id}`);
+                    
+                    if (deskBadge) { deskBadge.className = "badge-status status-assigned"; deskBadge.innerText = "Assigned"; }
+                    if (mobBadge) { mobBadge.className = "badge-status status-assigned"; mobBadge.innerText = "Assigned"; }
+                    
+                    // Refresh data pipeline states silently
+                    fetchIncomingQueue();
+                } else {
+                    alert("❌ Database allocation request processing rejected by pipeline server.");
+                }
+
+            } catch (error) {
+                alert("❌ Server connection lost during allocation update pipe operation.");
+            }
+        }
+    </script>
+</body>
+</html>

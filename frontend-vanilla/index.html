@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ServiceHub - Elite Home Appliance Operations</title>
+
+    <!-- ⚡ DYNAMIC BRAND FAVICON -->
+    <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2280%22>🛠️</text></svg>">
+
+    <!-- 🟢 Google Typography & Iconography -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+
+    <!-- 🌐 Leaflet.js Map CSS (Free & Professional) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <style>
+        /* 🎨 THEME DATA ENGINE */
+        :root {
+            --primary-blue: #2563EB;
+            --accent-orange: #F97316;
+            --bg-slate: #F8FAFC;
+            --text-main: #0F172A;
+            --text-muted: #64748B;
+            --border-color: #E2E8F0;
+            --radius-xl: 28px;
+            --radius-md: 18px;
+            --transition: all 0.5s cubic-bezier(0.165, 0.84, 0.44, 1);
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-slate);
+            color: var(--text-main);
+            overflow-x: hidden;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4,
+        .navbar-brand {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-weight: 800;
+            letter-spacing: -1px;
+        }
+
+        /* 🌐 ULTRA-GLIDE NAVBAR */
+        .navbar {
+            background: rgba(255, 255, 255, 0.85) !important;
+            backdrop-filter: blur(25px);
+            border-bottom: 1px solid var(--border-color);
+            padding: 22px 0;
+            transition: var(--transition);
+        }
+
+        .navbar-brand {
+            font-size: 1.7rem;
+            color: var(--text-main) !important;
+        }
+
+        .navbar-brand span {
+            color: var(--primary-blue);
+        }
+
+        .navbar-brand i {
+            color: var(--accent-orange);
+        }
+
+        .nav-link {
+            color: var(--text-muted) !important;
+            font-weight: 600;
+            font-size: 0.98rem;
+            padding: 10px 22px !important;
+            border-radius: 12px;
+            transition: var(--transition);
+        }
+
+        .nav-link:hover {
+            color: var(--primary-blue) !important;
+            background: rgba(37, 99, 235, 0.05);
+        }
+
+        .btn-nav-cta {
+            background: var(--primary-blue);
+            color: white !important;
+            font-weight: 700;
+            border-radius: var(--radius-md);
+            padding: 12px 28px !important;
+            box-shadow: 0 10px 25px rgba(37, 99, 235, 0.15);
+            transition: var(--transition);
+            border: none;
+        }
+
+        .btn-nav-cta:hover {
+            background: var(--text-main);
+            transform: translateY(-2px);
+            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.2);
+        }
+
+        /* 🎭 HERO LAYER */
+        .hero-container {
+            padding: 190px 0 120px 0;
+            background: radial-gradient(circle at 85% 20%, rgba(37, 99, 235, 0.06), transparent 45%),
+                radial-gradient(circle at 15% 75%, rgba(249, 115, 22, 0.04), transparent 40%);
+        }
+
+        .hero-tag {
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            font-weight: 700;
+            font-size: 0.85rem;
+            padding: 8px 18px;
+            border-radius: 100px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.02);
+        }
+
+        .hero-tag i {
+            color: var(--accent-orange);
+        }
+
+        .hero-title {
+            font-size: 4.2rem;
+            line-height: 1.1;
+            margin-bottom: 30px;
+            color: var(--text-main);
+        }
+
+        .hero-title span {
+            color: var(--primary-blue);
+        }
+
+        .hero-title em {
+            font-style: normal;
+            color: var(--accent-orange);
+        }
+
+        .hero-display-grid {
+            position: relative;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .hero-img-card {
+            border-radius: var(--radius-xl);
+            width: 90%;
+            height: 520px;
+            object-fit: cover;
+            box-shadow: 0 40px 80px rgba(15, 23, 42, 0.08);
+            border: 12px solid #ffffff;
+            transition: var(--transition);
+        }
+
+        .floating-widget-pro {
+            position: absolute;
+            bottom: 40px;
+            left: 0px;
+            background: #ffffff;
+            border-radius: var(--radius-md);
+            padding: 24px 30px;
+            box-shadow: 0 30px 60px rgba(15, 23, 42, 0.08);
+            border: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 18px;
+        }
+
+        .widget-accent-box {
+            width: 55px;
+            height: 55px;
+            background: rgba(37, 99, 235, 0.08);
+            color: var(--primary-blue);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        /* 🛠️ HOW IT WORKS */
+        .flow-step-card {
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 40px 30px;
+            position: relative;
+            transition: var(--transition);
+        }
+
+        .flow-step-card:hover {
+            border-color: var(--primary-blue);
+            box-shadow: 0 20px 40px rgba(37, 99, 235, 0.04);
+        }
+
+        .step-number {
+            font-size: 3.5rem;
+            font-weight: 900;
+            color: rgba(37, 99, 235, 0.1);
+            position: absolute;
+            top: 15px;
+            right: 25px;
+            line-height: 1;
+        }
+
+        /* 📦 SERVICES MATRIX GRID */
+        .grid-card-pro {
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 40px 30px;
+            transition: var(--transition);
+            height: 100%;
+            position: relative;
+        }
+
+        .grid-card-pro:hover {
+            transform: translateY(-10px);
+            border-color: var(--primary-blue);
+            box-shadow: 0 25px 50px rgba(37, 99, 235, 0.06);
+        }
+
+        .icon-container-pro {
+            width: 68px;
+            height: 68px;
+            background: var(--bg-slate);
+            color: var(--primary-blue);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.7rem;
+            margin-bottom: 28px;
+            transition: var(--transition);
+        }
+
+        .grid-card-pro:hover .icon-container-pro {
+            background: var(--primary-blue);
+            color: #ffffff;
+        }
+
+        .grid-card-pro h4 {
+            font-size: 1.35rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        .grid-card-pro p {
+            color: var(--text-muted);
+            font-size: 0.92rem;
+            line-height: 1.6;
+        }
+
+        /* 📝 BOOKING SUITE & MAP */
+        .suite-form-card {
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-xl);
+            box-shadow: 0 50px 100px rgba(15, 23, 42, 0.03);
+            padding: 55px;
+        }
+
+        #map {
+            height: 280px;
+            border-radius: 14px;
+            border: 1px solid var(--border-color);
+            z-index: 1;
+        }
+
+        .btn-location-gps {
+            background-color: #ffffff;
+            border: 1px solid var(--primary-blue);
+            color: var(--primary-blue);
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-size: 0.88rem;
+            transition: var(--transition);
+        }
+
+        .btn-location-gps:hover {
+            background-color: var(--primary-blue);
+            color: #ffffff;
+        }
+
+        .form-input-premium,
+        .form-select-premium {
+            background: var(--bg-slate) !important;
+            border: 1px solid var(--border-color);
+            color: var(--text-main) !important;
+            border-radius: 14px;
+            padding: 16px 20px;
+            font-size: 0.98rem;
+            transition: var(--transition);
+        }
+
+        .form-input-premium:focus,
+        .form-select-premium:focus {
+            border-color: var(--primary-blue);
+            background: #ffffff !important;
+            box-shadow: 0 0 0 5px rgba(37, 99, 235, 0.08);
+        }
+
+        .form-label {
+            font-weight: 700;
+            font-size: 0.88rem;
+            color: var(--text-main);
+            margin-bottom: 10px;
+        }
+
+        .btn-execution-pro {
+            background: var(--primary-blue);
+            color: white;
+            font-weight: 700;
+            border: none;
+            border-radius: 14px;
+            padding: 18px;
+            font-size: 1.05rem;
+            box-shadow: 0 8px 25px rgba(37, 99, 235, 0.2);
+            transition: var(--transition);
+        }
+
+        .btn-execution-pro:hover {
+            background: var(--accent-orange);
+            box-shadow: 0 8px 25px rgba(249, 115, 22, 0.3);
+            transform: translateY(-2px);
+        }
+
+        /* 🏢 PREMIUM CORPORATE FOOTER */
+        .footer-premium {
+            background-color: #ffffff;
+            border-top: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 80px 0 30px 0;
+        }
+
+        .footer-brand {
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin-bottom: 20px;
+        }
+
+        .footer-brand span {
+            color: var(--primary-blue);
+        }
+
+        .footer-brand i {
+            color: var(--accent-orange);
+        }
+
+        .footer-links-title {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 25px;
+            position: relative;
+        }
+
+        .footer-links-title::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: -8px;
+            width: 35px;
+            height: 3px;
+            background-color: var(--accent-orange);
+            border-radius: 2px;
+        }
+
+        .footer-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .footer-list li {
+            margin-bottom: 12px;
+        }
+
+        .footer-list a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 500;
+            transition: var(--transition);
+            font-size: 0.95rem;
+        }
+
+        .footer-list a:hover {
+            color: var(--primary-blue);
+            padding-left: 6px;
+        }
+
+        .footer-contact-info i {
+            color: var(--primary-blue);
+            width: 25px;
+        }
+
+        .footer-bottom {
+            border-top: 1px solid var(--border-color);
+            margin-top: 50px;
+            padding-top: 30px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- 🌐 CLEAN BRAND ENGINE NAVBAR -->
+    <!-- 🌐 CLEAN BRAND ENGINE NAVBAR -->
+    <nav class="navbar navbar-expand-lg navbar-light fixed-top">
+        <div class="container">
+            <!-- Left Side: Brand Logo & Operational Location -->
+            <div class="d-flex align-items-center">
+                <a class="navbar-brand m-0" href="#">
+                    <i class="fa-solid fa-screwdriver-wrench me-2"></i><span>Service</span>Hub
+                </a>
+                <!-- 📍 REAL-TIME LOCATION BADGE -->
+                <span
+                    class="badge bg-light text-dark border ms-3 d-none d-sm-inline-block animate__animated animate__fadeIn"
+                    style="border-radius: 8px; padding: 6px 12px; font-weight: 600; font-size: 0.85rem; color: var(--text-main) !important;">
+                    <i class="fa-solid fa-location-dot text-danger me-1"></i> Olpad, Surat
+                </span>
+            </div>
+
+            <!-- 📱 MOBILE MENU BUTTON (Hamburger Icon) -->
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse"
+                data-bs-target="#mainNavbarEngine" aria-controls="mainNavbarEngine" aria-expanded="false"
+                aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <!-- Right Side: Links & Call-To-Action -->
+            <div class="collapse navbar-collapse justify-content-end" id="mainNavbarEngine">
+                <ul class="navbar-nav gap-2 align-items-center mt-3 mt-lg-0">
+                    <li class="nav-item"><a class="nav-link" href="#process-section">How It Works</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#services-grid-section">Services Grid</a></li>
+                    <!-- 📞 QUICK EMERGENCY HELP -->
+                    <li class="nav-item">
+                        <a class="nav-link text-dark fw-semibold" href="tel:+919876543210">
+                            <i class="fa-solid fa-headset text-primary me-1"></i> Helpline
+                        </a>
+                    </li>
+                    <li class="nav-item ms-lg-2">
+                        <a class="nav-link btn-nav-cta text-white px-4" href="#booking-suite-section">Book Service</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 🎭 HERO COMPONENT -->
+    <header class="hero-container">
+        <div class="container">
+            <div class="row align-items-center g-5">
+                <div class="col-lg-6" data-aos="fade-right">
+                    <span class="hero-tag"><i class="fa-solid fa-shield-halved"></i> 100% Centralized Data
+                        Privacy</span>
+                    <h1 class="hero-title">Smart <span>Home Utility</span> & Appliance <em>Fixes</em>.</h1>
+                    <p class="lead text-muted mb-4 fs-5">Book high-tier verified technicians instantly without exposing
+                        your private contact details. Complete workflow security monitored directly by us.</p>
+                    <div class="d-flex gap-3 mt-2">
+                        <a href="#booking-suite-section" class="btn btn-nav-cta btn-lg px-5 py-3 shadow">Book Service
+                            Line</a>
+                        <a href="#services-grid-section"
+                            class="btn btn-light btn-lg px-4 py-3 border text-dark fw-semibold"
+                            style="border-radius:var(--radius-md);">Explore Matrix</a>
+                    </div>
+                </div>
+                <div class="col-lg-6" data-aos="fade-left">
+                    <div class="hero-display-grid">
+                        <img src="https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=800&q=80"
+                            alt="Corporate Engineer Workflow" class="hero-img-card">
+                        <div
+                            class="floating-widget-pro animate__animated animate__pulse animate__infinite animate__slower">
+                            <div class="widget-accent-box"><i class="fa-solid fa-circle-check"></i></div>
+                            <div>
+                                <h5 class="fw-bold m-0 p-0 fs-6 text-dark">KYC Audited</h5>
+                                <p class="text-muted small m-0 p-0">100% Secure Team</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 🛠️ HOW IT WORKS -->
+    <section id="process-section" class="container my-5 py-5 border-top">
+        <div class="row g-4 mb-5">
+            <div class="col-lg-6" data-aos="fade-up">
+                <span class="text-primary fw-bold text-uppercase tracking-wider small">Workflow Process</span>
+                <h2 class="fw-bold fs-1 mt-2 text-dark">3 Easy Steps to Fix</h2>
+            </div>
+            <div class="col-lg-6 d-flex align-items-center" data-aos="fade-up" data-aos-delay="100">
+                <p class="text-muted m-0">Customer data stays isolated. Admin schedules allocations manually to deliver
+                    rapid doorstep fixes without compromising privacy boundaries.</p>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-md-4" data-aos="fade-up" data-aos-delay="200">
+                <div class="card flow-step-card h-100">
+                    <div class="step-number">01</div>
+                    <h5 class="fw-bold text-primary mb-3">Select System</h5>
+                    <p class="text-muted small m-0">Choose your required appliance service (AC, Fridge, RO, etc.) and
+                        add details securely.</p>
+                </div>
+            </div>
+            <div class="col-md-4" data-aos="fade-up" data-aos-delay="300">
+                <div class="card flow-step-card h-100">
+                    <div class="step-number">02</div>
+                    <h5 class="fw-bold text-primary mb-3">Admin Routing</h5>
+                    <p class="text-muted small m-0">The request safely populates the dashboard where a verified expert
+                        is securely assigned.</p>
+                </div>
+            </div>
+            <div class="col-md-4" data-aos="fade-up" data-aos-delay="400">
+                <div class="card flow-step-card h-100">
+                    <div class="step-number">03</div>
+                    <h5 class="fw-bold text-primary mb-3">Doorstep Resolution</h5>
+                    <p class="text-muted small m-0">The assigned provider reaches your home to complete the task with
+                        dynamic status updates.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 📦 SERVICES MATRIX GRID -->
+    <section id="services-grid-section" class="container my-5 py-5">
+        <div class="text-center max-width-600 mx-auto mb-5" data-aos="fade-up">
+            <span class="text-primary fw-bold text-uppercase tracking-wider small">Operational Domains</span>
+            <h2 class="fw-bold fs-2 mt-1 text-dark">Elite Service Classification</h2>
+        </div>
+
+        <div class="row g-4 justify-content-center">
+            <div class="col-md-6 col-lg-3" data-aos="fade-up" data-aos-delay="100">
+                <div class="card grid-card-pro">
+                    <div class="icon-container-pro"><i class="fa-solid fa-snowflake"></i></div>
+                    <h4>AC Operations</h4>
+                    <p>Cooling configuration, structural gas calibration, and full core compressor tuning diagnostics.
+                    </p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3" data-aos="fade-up" data-aos-delay="200">
+                <div class="card grid-card-pro">
+                    <div class="icon-container-pro"><i class="fa-solid fa-temperature-arrow-down"></i></div>
+                    <h4>Refrigerator</h4>
+                    <p>Thermostat optimization, diagnostic fluid leveling, and structural heavy relay replacements.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3" data-aos="fade-up" data-aos-delay="300">
+                <div class="card grid-card-pro">
+                    <div class="icon-container-pro"><i class="fa-solid fa-soap"></i></div>
+                    <h4>Washing Line</h4>
+                    <p>Drum structural alignment, high-torque motor testing, and modern electronic display updates.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3" data-aos="fade-up" data-aos-delay="400">
+                <div class="card grid-card-pro">
+                    <div class="icon-container-pro"><i class="fa-solid fa-glass-water"></i></div>
+                    <h4>RO Purifier</h4>
+                    <p>Filter membrane swap pipelines, automated TDS balance auditing, and leakage defense tuning.</p>
+                </div>
+            </div>
+            <div class="col-md-4" data-aos="fade-up" data-aos-delay="500">
+                <div class="card grid-card-pro">
+                    <div class="icon-container-pro"><i class="fa-solid fa-fire-burner"></i></div>
+                    <h4>Geyser System</h4>
+                    <p>Heating element structural descaling, safe pressure valve testing, and thermostat replacement
+                        mappings.</p>
+                </div>
+            </div>
+            <div class="col-md-4" data-aos="fade-up" data-aos-delay="600">
+                <div class="card grid-card-pro">
+                    <div class="icon-container-pro"><i class="fa-solid fa-bolt"></i></div>
+                    <h4>Electrician Elite</h4>
+                    <p>High-voltage short circuit diagnosis, internal structural wiring updates, and distribution board
+                        overhauls.</p>
+                </div>
+            </div>
+            <div class="col-md-4" data-aos="fade-up" data-aos-delay="700">
+                <div class="card grid-card-pro">
+                    <div class="icon-container-pro"><i class="fa-solid fa-wrench"></i></div>
+                    <h4>Plumbing Network</h4>
+                    <p>Pressure leakage isolation, copper/PVC pipeline network routing, and high-end fixture mappings.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 📝 EXECUTIVE BOOKING COMPONENT WITH INTEGRATED MAP MAP -->
+    <section id="booking-suite-section" class="py-5 bg-white border-top border-bottom">
+        <div class="container" style="max-width: 780px;" data-aos="zoom-in">
+            <div class="card suite-form-card border-0">
+                <h2 class="fw-bold text-center mb-2 text-dark">Book a <span style="color: var(--primary-blue);">Verified
+                        Technician</span></h2>
+                <p class="text-muted text-center mb-5">Apni details bharein aur kuch hi der mein certified expert
+                    technician aapke doorstep par hoga.</p>
+
+                <form id="serviceForm">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Your Full Name</label>
+                            <input type="text" class="form-control form-input-premium" id="clientName"
+                                placeholder="Enter your name" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Mobile Number</label>
+                            <input type="tel" class="form-control form-input-premium" id="phone"
+                                placeholder="10-digit mobile number" required>
+                        </div>
+
+                        <!-- 🗺️ REALS MAP INTEGRATION CONTAINER -->
+                        <div class="col-12">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label class="form-label m-0">Pin Your Location (Map)</label>
+                                <button type="button" class="btn-location-gps" id="btnDetectGPS">
+                                    <i class="fa-solid fa-location-crosshairs me-1"></i> Detect My Location
+                                </button>
+                            </div>
+                            <div id="map" class="mb-2"></div>
+                            <span class="text-muted small"><i class="fa-solid fa-info-circle me-1"></i> Aap marker ko
+                                drag karke apni exact home location pin kar sakte hain.</span>
+
+                            <!-- Hidden coordinates values to pass to backend database -->
+                            <input type="hidden" id="latitude">
+                            <input type="hidden" id="longitude">
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label">Complete Address Details</label>
+                            <textarea class="form-control form-input-premium" id="address" rows="3"
+                                placeholder="House No., Building Name, Landmark, Road/Street detail..."
+                                required></textarea>
+                        </div>
+                        <div class="col-12 mb-4">
+                            <label class="form-label">Select Service / Appliance</label>
+                            <select class="form-select form-select-premium" id="serviceType" required>
+                                <option value="" selected disabled>Choose appliance to repair...</option>
+                                <option value="AC">AC Service & Repair</option>
+                                <option value="Refrigerator">Refrigerator / Fridge</option>
+                                <option value="Washing Machine">Washing Machine</option>
+                                <option value="RO Water Purifier">RO Water Purifier</option>
+                                <option value="Geyser">Geyser Repair</option>
+                                <option value="Electrician">Electrician Services</option>
+                                <option value="Plumber">Plumber Services</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-execution-pro w-100 btn-lg shadow mt-2">
+                        <i class="fa-solid fa-circle-check me-2"></i>Book Service Now
+                    </button>
+                </form>
+
+                <div id="responseMessage" class="alert mt-4 d-none animate__animated animate__fadeIn"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 🏢 PREMIUM CORPORATE BRANDED FOOTER -->
+    <footer class="footer-premium">
+        <div class="container">
+            <div class="row g-4">
+                <!-- Column 1: Brand Info -->
+                <div class="col-lg-4 col-md-6">
+                    <div class="footer-brand">
+                        <i class="fa-solid fa-screwdriver-wrench me-2"></i><span>Service</span>Hub
+                    </div>
+                    <p class="text-muted small pe-lg-4" style="line-height: 1.7;">
+                        ServiceHub on-demand household services platform hai jo appliance engineering ko smooth, swift
+                        aur complete numeric privacy masking ke saath doorstep par secure deliver karta hai.
+                    </p>
+                </div>
+
+                <!-- Column 2: Core Offerings -->
+                <div class="col-lg-3 col-md-6">
+                    <h5 class="footer-links-title">Our Services</h5>
+                    <ul class="footer-list">
+                        <li><a href="#services-grid-section">AC Repair & Gas Refill</a></li>
+                        <li><a href="#services-grid-section">Smart Refrigerator Service</a></li>
+                        <li><a href="#services-grid-section">Washing Machine Setup</a></li>
+                        <li><a href="#services-grid-section">RO Purifier TDS Auditing</a></li>
+                        <li><a href="#services-grid-section">Geyser & Utility Operations</a></li>
+                    </ul>
+                </div>
+
+                <!-- Column 3: Corporate Mappings -->
+                <div class="col-lg-2 col-md-6">
+                    <h5 class="footer-links-title">Quick Navigation</h5>
+                    <ul class="footer-list">
+                        <li><a href="#">Home Base</a></li>
+                        <li><a href="#process-section">How It Works</a></li>
+                        <li><a href="#booking-suite-section">Book Form</a></li>
+                        <li><a href="#">Privacy Policy</a></li>
+                        <li><a href="#">Terms & Conditions</a></li>
+                    </ul>
+                </div>
+
+                <!-- Column 4: Operational Center Details -->
+                <div class="col-lg-3 col-md-6">
+                    <h5 class="footer-links-title">Operational Center</h5>
+                    <ul class="footer-list footer-contact-info">
+                        <li class="text-muted small">
+                            <i class="fa-solid fa-location-dot"></i> Olpad Area, Surat, Gujarat, 394540
+                        </li>
+                        <li class="text-muted small">
+                            <i class="fa-solid fa-envelope"></i> support@servicehub.com
+                        </li>
+                        <li class="text-muted small">
+                            <i class="fa-solid fa-phone"></i> +91 98765 43210 (Secure Operations)
+                        </li>
+                        <li class="text-muted small">
+                            <i class="fa-solid fa-clock"></i> Mon - Sun: 8:00 AM - 9:00 PM
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Bottom Note -->
+            <div class="row footer-bottom text-center text-md-start">
+                <div class="col-md-6">
+                    <p class="m-0">&copy; 2026 ServiceHub Inc. All Operational Rights Reserved.</p>
+                </div>
+                <div class="col-md-6 text-md-end mt-2 mt-md-0">
+                    <p class="m-0">Designed for Secure Multi-Service Deployments.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 🟢 SCRIPTS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+
+    <!-- 🌐 Leaflet Map JavaScript Bundle -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        AOS.init({ duration: 900, once: true });
+
+        // ==========================================
+        // 🗺️ LEAFLET FREE MAP RENDERING ENGINE
+        // ==========================================
+        // Default Coordinates set to Surat/Olpad region
+        const defaultLat = 21.1702;
+        const defaultLng = 72.8311;
+
+        // Map Initialize kiya
+        const map = L.map('map').setView([defaultLat, defaultLng], 13);
+
+        // OpenStreetMap Open tiles source map render karne ke liye
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Draggable Brand Pin Marker lagaya
+        let marker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(map);
+
+        // Jab user marker drag karega toh automated hidden coordinates field change honge
+        function updateCoordinates(lat, lng) {
+            document.getElementById('latitude').value = lat.toFixed(6);
+            document.getElementById('longitude').value = lng.toFixed(6);
+        }
+        updateCoordinates(defaultLat, defaultLng); // Initial set
+
+        marker.on('dragend', function (e) {
+            const position = marker.getLatLng();
+            updateCoordinates(position.lat, position.lng);
+        });
+
+        // 🛰️ HTML5 BROWSER GEOLOCATION (Detect Location Feature)
+        document.getElementById('btnDetectGPS').addEventListener('click', () => {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition((position) => {
+                    const userLat = position.coords.latitude;
+                    const userLng = position.coords.longitude;
+
+                    // Map view aur marker ko user ki real location par jump karaya
+                    map.setView([userLat, userLng], 16);
+                    marker.setLatLng([userLat, userLng]);
+                    updateCoordinates(userLat, userLng);
+
+                    alert('🚀 Location successfully tracked via secure GPS tracking system!');
+                }, (error) => {
+                    alert('❌ GPS Access Denied. Please enable location permissions in browser settings.');
+                });
+            } else {
+                alert('❌ Your device browser does not support high-precision geolocation tracking.');
+            }
+        });
+        // ==========================================
+        // ⚡ LIVE BACKEND INTEGRATION ENGINE (FETCH API)
+        // ==========================================
+        document.getElementById('serviceForm').addEventListener('submit', async (e) => {
+            e.preventDefault(); // Form submit hone par page reload ko rokne ke liye
+
+            const responseMessage = document.getElementById('responseMessage');
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+
+            // Saara data elements se utha kar object banaya
+            const bookingData = {
+                clientName: document.getElementById('clientName').value,
+                phone: document.getElementById('phone').value,
+                address: document.getElementById('address').value,
+                serviceType: document.getElementById('serviceType').value,
+                latitude: document.getElementById('latitude').value,
+                longitude: document.getElementById('longitude').value
+            };
+
+            try {
+                // Button par smooth loading animation toggle ki
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin me-2"></i>Processing Request...`;
+
+                // Backend API ko POST request bheji
+                const response = await fetch('http://localhost:5000/api/services/book', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(bookingData)
+                });
+
+                const result = await response.json();
+
+                // Status messages handle karne ke liye classes reset ki
+                responseMessage.classList.remove('d-none', 'alert-success', 'alert-danger');
+
+                if (response.status === 201 || response.status === 200) {
+                    responseMessage.classList.add('alert-success');
+                    responseMessage.innerHTML = `🎉 <strong>Mubarak Ho!</strong> Booking successfully register ho gayi hai aur Admin queue mein bhej di gayi hai.`;
+                    e.target.reset(); // Booking ke baad form clear karne ke liye
+                } else {
+                    responseMessage.classList.add('alert-danger');
+                    responseMessage.innerHTML = `❌ <strong>Error:</strong> ${result.message || 'Booking complete nahi ho payi.'}`;
+                }
+
+            } catch (error) {
+                // Agar node.js server band ho ya network problem ho
+                responseMessage.classList.remove('d-none', 'alert-success');
+                responseMessage.classList.add('alert-danger');
+                responseMessage.innerHTML = `❌ <strong>Server Connection Error:</strong> Backend server ya MongoDB respond nahi kar raha hai!`;
+            } finally {
+                // Button ko wapas normal state mein laaye
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `<i class="fa-solid fa-circle-check me-2"></i>Book Service Now`;
+            }
+        });
+    </script>
+</body>
+
+</html>
