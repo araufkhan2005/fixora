@@ -1,164 +1,280 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const Booking = require('../models/Booking');
+const User = require('../models/User');
 const Technician = require('../models/Technician');
+const cloudinary = require('../config/cloudinary');
 
 // ==========================================
-// 📥 1. HOME PAGE & PORTAL API
+// ☁️ CLOUDINARY IMAGE UPLOAD API
+// ==========================================
+router.post('/upload-image', async (req, res) => {
+    try {
+        const { imageBase64 } = req.body;
+        if (!imageBase64) return res.status(400).json({ message: 'No image provided' });
+
+        const uploadResponse = await cloudinary.uploader.upload(imageBase64, {
+            folder: 'fixora_uploads'
+        });
+
+        res.status(200).json({ url: uploadResponse.secure_url });
+    } catch (error) {
+        console.error("Cloudinary upload error:", error);
+        res.status(500).json({ message: "Image upload failed", error: error.message });
+    }
+});
+
+// ==========================================
+// 📝 CUSTOMER BOOKING CREATION
+// ==========================================
+router.post('/book', async (req, res) => {
+    try {
+        const { clientName, phone, address, serviceType, bookingDate, bookingTime, applianceImage, customerId, notes } = req.body;
+
+        if (!clientName || !phone || !address || !serviceType) {
+            return res.status(400).json({ message: 'Name, Phone, Address and Service Type are required!' });
+        }
+
+        const newBooking = new Booking({
+            customer: customerId && mongoose.Types.ObjectId.isValid(customerId) ? customerId : null,
+            clientName,
+            phone,
+            address,
+            serviceType,
+            bookingDate: bookingDate || new Date().toISOString().split('T')[0],
+            bookingTime: bookingTime || 'Morning Slot (9 AM - 12 PM)',
+            applianceImage: applianceImage || '',
+            notes: notes || ''
+        });
+
+        await newBooking.save();
+        res.status(201).json({ message: '🎉 Booking successfully placed!', bookingDetails: newBooking });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// ==========================================
+// 📂 GET BOOKINGS BY CUSTOMER / PHONE
+// ==========================================
+router.get('/customer-bookings/:identifier', async (req, res) => {
+    try {
+        const { identifier } = req.params;
+        let query = {};
+
+        if (mongoose.Types.ObjectId.isValid(identifier)) {
+            query = { $or: [{ customer: identifier }, { phone: identifier }] };
+        } else {
+            query = { phone: identifier };
+        }
+
+        const myBookings = await Booking.find(query)
+            .populate('assignedTechnician', 'name phone specialty image photo')
+            .sort({ _id: -1 });
+
+        res.status(200).json(myBookings);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// ==========================================
+// 📥 FETCH LIVE TECHNICIANS FOR HOME & ADMIN
 // ==========================================
 router.get('/homepage-techs', async (req, res) => {
     try {
-        const rankedTechs = await Technician.find({})
-            .sort({ planPrice: -1 })
-            .select('name specialty photo rating subscriptionPlan');
-            
-        res.status(200).json(rankedTechs);
+        const technicians = await User.find({ role: 'technician' }).select('-password');
+        res.status(200).json(technicians);
     } catch (error) {
-        res.status(500).json({ message: "Homepage layout fetch failed!", error: error.message });
+        res.status(500).json({ message: error.message });
+    }
+});
+
+router.get('/get-technicians', async (req, res) => {
+    try {
+        const technicians = await User.find({ role: 'technician' }).select('-password');
+        res.status(200).json(technicians);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
     }
 });
 
 // ==========================================
-// 📥 2. GET ROUTE: All Bookings Queue
+// 📥 FETCH ALL BOOKINGS QUEUE
 // ==========================================
 router.get('/', async (req, res) => {
     try {
-        const allBookings = await Booking.find().populate('assignedTechnician').sort({ _id: -1 }); 
+        const allBookings = await Booking.find()
+            .populate('assignedTechnician', 'name email phone specialty image photo')
+            .sort({ _id: -1 });
         
-        const formattedBookings = allBookings.map(booking => {
-            const bookingObj = booking.toObject();
-            return {
-                ...bookingObj,
-                technician: booking.assignedTechnician ? booking.assignedTechnician.name : null
-            };
-        });
-        res.status(200).json(formattedBookings);
+        const formatted = allBookings.map(b => ({
+            ...b.toObject(),
+            technician: b.assignedTechnician ? b.assignedTechnician.name : null
+        }));
+        res.status(200).json(formatted);
     } catch (error) {
-        res.status(500).json({ message: "Database queue fetch failed!", error: error.message });
+        res.status(500).json({ message: error.message });
     }
 });
 
 // ==========================================
-// ⚙️ 3. ADMIN PANEL API: Add Technician
+// ⚙️ ADD TECHNICIAN
 // ==========================================
 router.post('/add-technician', async (req, res) => {
     try {
-        const { name, phone, specialty, age, address, subscriptionPlan, planPrice, photo } = req.body;
-        
+        const { name, email, password, phone, specialty, age, address, subscriptionPlan, planPrice, image } = req.body;
+        if (!name || !email || !password || !phone) {
+            return res.status(400).json({ message: 'Name, Email, Password, and Phone are required fields!' });
+        }
+        const userExists = await User.findOne({ email });
+        if (userExists) return res.status(400).json({ message: 'Is email se pehle se user registered hai!' });
+
+        const photoUrl = image || '';
         let calculatedRating = 4.3;
         if (subscriptionPlan === 'Platinum') calculatedRating = 4.9;
         else if (subscriptionPlan === 'Gold') calculatedRating = 4.7;
 
-        const newTech = new Technician({ 
-            name, phone, specialty, age, address, subscriptionPlan,
-            planPrice: Number(planPrice) || 0,
-            rating: calculatedRating,
-            photo: photo || 'https://via.placeholder.com/150'
+        const newTechUser = await User.create({
+            name, email, password, phone, role: 'technician',
+            specialty: specialty || 'General Expert', age: Number(age) || 25,
+            address: address || '', subscriptionPlan: subscriptionPlan || 'Basic',
+            planPrice: Number(planPrice) || 0, image: photoUrl, photo: photoUrl
         });
-        
-        await newTech.save();
-        res.status(201).json({ message: 'Technician successfully added!', data: newTech });
+
+        await Technician.create({
+            _id: newTechUser._id, name, email, phone,
+            specialty: specialty || 'General Expert', age: Number(age) || 25,
+            address: address || '', subscriptionPlan: subscriptionPlan || 'Basic',
+            planPrice: Number(planPrice) || 0, photo: photoUrl, rating: calculatedRating
+        });
+
+        res.status(201).json({ message: 'Technician successfully added to Database!', data: newTechUser });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ message: error.message });
     }
 });
 
 // ==========================================
-// 📝 4. CUSTOMER DIRECT BOOKING API
-// ==========================================
-router.post('/book', async (req, res) => {
-    try {
-        const { clientName, phone, address, serviceType, requestedTechId, coordinates } = req.body;
-
-        const newBooking = new Booking({
-            clientName, phone, address, serviceType,
-            coordinates: coordinates || null,
-            assignedTechnician: requestedTechId || null, 
-            status: 'Pending' 
-        });
-
-        await newBooking.save();
-        res.status(201).json({ message: 'Booking request generated!', bookingDetails: newBooking });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// ==========================================
-// 📤 5. ADMIN PANEL ONLY: Allocate Route
+// 📤 ADMIN ALLOCATE TECHNICIAN ROUTE
 // ==========================================
 router.put('/allocate/:id', async (req, res) => {
     try {
-        const bookingId = req.params.id;
-        const { technician, status } = req.body; 
-
+        const { technician, status } = req.body;
         let techRecord = null;
         if (technician && typeof technician === 'string' && technician.trim() !== "") {
-            const baseName = technician.split(' (')[0].trim(); 
-            const nameWords = baseName.split(/\s+/).filter(word => word.length > 0);
-            const searchConditions = nameWords.map(word => ({
-                name: { $regex: new RegExp(word, "i") }
-            }));
-            techRecord = await Technician.findOne({ $and: searchConditions });
+            if (mongoose.Types.ObjectId.isValid(technician)) {
+                techRecord = await User.findById(technician);
+            } else {
+                const baseName = technician.split(' (')[0].trim();
+                const escapedName = baseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                techRecord = await User.findOne({ 
+                    name: { $regex: new RegExp(`^${escapedName}$`, "i") }, 
+                    role: 'technician' 
+                });
+            }
         }
-
-        const updatedRequest = await Booking.findByIdAndUpdate(
-            bookingId,
-            { 
-                assignedTechnician: techRecord ? techRecord._id : null,
-                status: status || "Assigned"
-            },
-            { new: true } 
+        const updated = await Booking.findByIdAndUpdate(
+            req.params.id,
+            { assignedTechnician: techRecord ? techRecord._id : null, status: status || "Assigned" },
+            { returnDocument: 'after' }
         );
-
-        res.status(200).json({ message: "Admin allocation updated successfully!", updatedRequest });
+        res.status(200).json(updated);
     } catch (error) {
-        res.status(500).json({ message: "Allocation failed!", error: error.message });
+        res.status(500).json({ message: error.message });
     }
 });
 
 // ==========================================
-// ⚡ 6. DEDICATED PORTAL UPDATE ROUTE (FIXES THE ACCEPT BUG)
+// ⚡ TECHNICIAN PORTAL UPDATE ROUTE
 // ==========================================
 router.put('/portal-update/:id', async (req, res) => {
     try {
         const bookingId = req.params.id;
-        const { status } = req.body;
+        const { status, beforeImage, afterImage, spareParts, totalAmount } = req.body;
 
-        // 🟢 ONLY updates the status field, leaves the assignedTechnician completely untouched!
-        const updatedRequest = await Booking.findByIdAndUpdate(
-            bookingId,
-            { $set: { status: status } },
-            { new: true }
+        const updateFields = {};
+        if (status) updateFields.status = status;
+        if (beforeImage) updateFields.beforeImage = beforeImage;
+        if (afterImage) updateFields.afterImage = afterImage;
+        if (spareParts) updateFields.spareParts = spareParts;
+        if (totalAmount !== undefined) updateFields.totalAmount = totalAmount;
+
+        const updated = await Booking.findByIdAndUpdate(
+            bookingId, 
+            { $set: updateFields }, 
+            { returnDocument: 'after' }
         );
-
-        res.status(200).json({ message: "Portal status synchronized!", updatedRequest });
+        res.status(200).json(updated);
     } catch (error) {
-        res.status(500).json({ message: "Status update failed!", error: error.message });
+        res.status(500).json({ message: error.message });
     }
 });
 
 // ==========================================
-// ❌ 7. TECHNICIAN PORTAL API: Cancel Job (Resets back to Admin Queue)
+// ❌ CANCEL / REJECT JOB ROUTE
 // ==========================================
 router.put('/cancel-job/:id', async (req, res) => {
     try {
-        const bookingId = req.params.id;
-        
+        const updated = await Booking.findByIdAndUpdate(
+            req.params.id, 
+            { status: 'Pending', assignedTechnician: null }, 
+            { returnDocument: 'after' }
+        );
+        if (!updated) return res.status(404).json({ message: "Job record not found!" });
+        res.status(200).json(updated);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// ==========================================
+// ⭐ SUBMIT CUSTOMER RATING & REVIEW ROUTE
+// ==========================================
+router.put('/rate-service/:id', async (req, res) => {
+    try {
+        const { rating, review } = req.body;
+        if (!rating || rating < 1 || rating > 5) {
+            return res.status(400).json({ message: "Valid rating (1-5 stars) required!" });
+        }
+
         const updatedBooking = await Booking.findByIdAndUpdate(
-            bookingId,
-            { 
-                status: 'Pending',
-                assignedTechnician: null
-            },
-            { new: true }
+            req.params.id,
+            { $set: { rating: Number(rating), review: review || '', isRated: true } },
+            { returnDocument: 'after' }
         );
 
-        if (!updatedBooking) return res.status(404).json({ message: "Job record not found!" });
+        if (!updatedBooking) {
+            return res.status(404).json({ message: "Booking record not found!" });
+        }
 
-        res.status(200).json({ message: "Job cancelled successfully!", updatedBooking });
+        // 📊 SAFE AUTO-RECALCULATE TECHNICIAN'S OVERALL RATING
+        try {
+            if (updatedBooking.assignedTechnician) {
+                const techId = updatedBooking.assignedTechnician._id || updatedBooking.assignedTechnician;
+                
+                const ratedBookings = await Booking.find({
+                    assignedTechnician: techId,
+                    isRated: true
+                });
+
+                if (ratedBookings.length > 0) {
+                    const totalScore = ratedBookings.reduce((sum, item) => sum + Number(item.rating || 0), 0);
+                    const avgRating = Number((totalScore / ratedBookings.length).toFixed(1));
+
+                    await User.findByIdAndUpdate(techId, { rating: avgRating }).catch(() => {});
+                    await Technician.findByIdAndUpdate(techId, { rating: avgRating }).catch(() => {});
+                }
+            }
+        } catch (techErr) {
+            console.warn("Tech rating update warning:", techErr.message);
+        }
+
+        res.status(200).json({ message: "⭐ Rating & feedback saved successfully!", updatedBooking });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error("Rate service error:", error);
+        res.status(500).json({ message: error.message });
     }
 });
 

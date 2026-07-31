@@ -3,35 +3,39 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 require('dotenv').config();
 
-// ServiceHub ke naye appliance booking routes ko import kiya
+// Routes Import
 const serviceRoutes = require('./routes/serviceRoutes');
+const authRoutes = require('./routes/authRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 // ==========================================
-// 🛠️ MIDDLEWARES
+// 🛠️ MIDDLEWARES (50MB PAYLOAD LIMIT FIX)
 // ==========================================
 app.use(cors());
-app.use(express.json()); // Frontend se JSON data accept karne ke liye
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // ==========================================
 // 🔗 ROUTES LINKING
 // ==========================================
-// Saari home services aur technicians ki APIs is path par chalengi
 app.use('/api/services', serviceRoutes);
+app.use('/api/auth', authRoutes);
 
-// Base Route (Browser par check karne ke liye ki server active hai ya nahi)
+// Base Route
 app.get('/', (req, res) => {
-    res.send('🚀 ServiceHub Multi-Service Server Ekdam Mast Chal Raha Hai!');
+    res.send('🚀 ServiceHub Server Running Successfully!');
 });
 
 // ==========================================
-// 💾 DATABASE CONNECTION (MongoDB Local)
+// 💾 DATABASE CONNECTION
 // ==========================================
-mongoose.connect(process.env.MONGODB_URI)
+const DB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/servicehub';
+
+mongoose.connect(DB_URI)
     .then(() => {
-        console.log('🚀 MongoDB Local Se Connect Ho Gaya!');
+        console.log('🚀 MongoDB Local Connected Successfully!');
         console.log('📂 Database Name: servicehub');
     })
     .catch((err) => {
@@ -42,5 +46,5 @@ mongoose.connect(process.env.MONGODB_URI)
 // 🚀 SERVER START
 // ==========================================
 app.listen(PORT, () => {
-    console.log(`📡 Server is running on port ${PORT}`);
+    console.log(`📡 Server running on port ${PORT}`);
 });
