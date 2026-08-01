@@ -6,15 +6,34 @@ const ServicesGrid = () => {
     const [loading, setLoading] = useState(true);
     const [bookingForm, setBookingForm] = useState({ show: false, techId: '', techName: '' });
     
-    /* ⚡ UPDATE: customerDetails mein coordinates ka naya field add kar diya hai */
+    /* ⚡ Customer details with GPS coordinates */
     const [customerDetails, setCustomerDetails] = useState({ clientName: '', phone: '', address: '', serviceType: '', coordinates: '' });
     const [bookingStatus, setBookingStatus] = useState('');
 
     /* 🟠 MAP & HOVER CONTROLS */
     const [hoveredTechId, setHoveredTechId] = useState(null);
     const [isGeoHovered, setIsGeoHovered] = useState(false);
-    const [mapCenter, setMapCenter] = useState("Rander, Surat"); // Default map view
+    const [mapCenter, setMapCenter] = useState("Rander, Surat");
     const [geoLoading, setGeoLoading] = useState(false);
+
+    // 📌 SERVICE CATEGORIES CONFIGURATION
+    const SERVICE_CATEGORIES = [
+        { id: 'ac', title: 'AC Repair & Service', icon: '❄️', keywords: ['ac', 'air conditioner', 'cooling'] },
+        { id: 'fridge', title: 'Refrigerator Repair', icon: '🧊', keywords: ['fridge', 'refrigerator', 'freezer'] },
+        { id: 'washing', title: 'Washing Machine Repair', icon: '🧺', keywords: ['washing', 'washer', 'machine'] },
+        { id: 'ro', title: 'RO Water Purifier Service', icon: '💧', keywords: ['ro', 'water', 'purifier', 'filter'] },
+        { id: 'electrical', title: 'Electrical Services', icon: '⚡', keywords: ['elect', 'electrician', 'wiring'] },
+        { id: 'plumbing', title: 'Plumbing Services', icon: '🔧', keywords: ['plumb', 'plumber', 'pipe'] }
+    ];
+
+    // 🎯 DYNAMIC PRICE TIER RATING CALCULATOR
+    const calculateDynamicRating = (tech) => {
+        const price = Number(tech.planPrice) || 0;
+        if (price >= 5000) return '4.9';
+        if (price >= 3000) return '4.7';
+        if (price >= 1500) return '4.5';
+        return '4.3';
+    };
 
     useEffect(() => {
         const fetchRankedTechs = async () => {
@@ -31,23 +50,19 @@ const ServicesGrid = () => {
     }, []);
 
     const handleBookClick = (techId, techName, specialty) => {
-        setBookingForm({ show: true, techId, techName });
-        setCustomerDetails({ ...customerDetails, serviceType: specialty, coordinates: '' });
-        setMapCenter("Rander, Surat"); // Reset map view on new click
+        setBookingForm({ show: true, techId: techId || '', techName: techName || 'Certified Expert' });
+        setCustomerDetails({ ...customerDetails, serviceType: specialty || 'General Repair', coordinates: '' });
+        setMapCenter("Rander, Surat");
     };
 
-    /* 📍 GEOLOCATION PIN DROP LOGIC: Customer ki exact location fetch karne ke liye */
+    /* 📍 GEOLOCATION PIN DROP LOGIC */
     const handleFetchLocation = () => {
         if (navigator.geolocation) {
             setGeoLoading(true);
             navigator.geolocation.getCurrentPosition(
                 (position) => {
                     const { latitude, longitude } = position.coords;
-                    
-                    // Map ka view customer ke coordinates par set karo
                     setMapCenter(`${latitude},${longitude}`);
-                    
-                    // Admin ke liye clickable google maps link generate karo
                     const googleMapsLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
                     
                     setCustomerDetails(prev => ({
@@ -57,7 +72,6 @@ const ServicesGrid = () => {
                     setGeoLoading(false);
                 },
                 (error) => {
-                    console.error("Location error: ", error);
                     alert("Location access denied. Please type your full address manually.");
                     setGeoLoading(false);
                 },
@@ -85,12 +99,18 @@ const ServicesGrid = () => {
 
         const validServiceType = normalizeServiceType(customerDetails.serviceType);
 
+        const notesPayload = [
+            bookingForm.techName ? `Requested Tech: ${bookingForm.techName}` : '',
+            customerDetails.coordinates ? `GPS Pin: ${customerDetails.coordinates}` : ''
+        ].filter(Boolean).join(' | ');
+
         try {
-            // ⚡ customerDetails ke andar ki coordinates value (Google Map Link) automatically backend par post ho jayegi
             await axios.post('http://localhost:5000/api/services/book', {
                 ...customerDetails,
                 serviceType: validServiceType,
-                requestedTechId: bookingForm.techId
+                customerId: bookingForm.techId || null,
+                requestedTechId: bookingForm.techId || null,
+                notes: notesPayload
             });
             
             setBookingStatus('🎉 Booking Request Sent to Admin Dashboard! Fixed Visiting Fee: ₹99');
@@ -104,65 +124,110 @@ const ServicesGrid = () => {
         }
     };
 
+    const getTechsForCategory = (keywords) => {
+        return technicians.filter(tech => {
+            const specialty = (tech.specialty || '').toLowerCase();
+            return keywords.some(key => specialty.includes(key));
+        });
+    };
+
     if (loading) return <h3 style={{ textAlign: 'center', marginTop: '50px' }}>Loading Premium Experts...</h3>;
 
     return (
         <div id="services-grid-section" style={{ padding: '60px 20px', fontFamily: 'sans-serif', backgroundColor: '#f9fafb', minHeight: '100vh', scrollMarginTop: '80px' }}>
             <h2 style={{ textAlign: 'center', color: '#111827', marginBottom: '10px', fontSize: '28px' }}>💥 Verified Home Service Experts</h2>
-            <p style={{ textAlign: 'center', color: '#6b7280', marginBottom: '40px' }}>Urban Company Standard • Top Ranked Partners First</p>
+            <p style={{ textAlign: 'center', color: '#6b7280', marginBottom: '40px' }}>Urban Company Standard • Category Wise Certified Partners</p>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '25px', maxWidth: '1200px', margin: '0 auto' }}>
-                {technicians.map((tech) => (
-                    <div key={tech._id} style={{ backgroundColor: '#fff', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', border: tech.subscriptionPlan === 'Platinum' ? '2px solid #fbbf24' : '1px solid #e5e7eb', position: 'relative', display: 'flex', flexDirection: 'column', transition: 'transform 0.2s' }}>
-                        
-                        {tech.subscriptionPlan === 'Platinum' && (
-                            <span style={{ position: 'absolute', top: '10px', right: '10px', backgroundColor: '#fbbf24', color: '#78350f', padding: '4px 8px', borderRadius: '20px', fontSize: '11px', fontWeight: 'bold' }}>⭐ Top Rated</span>
-                        )}
-                        {tech.subscriptionPlan === 'Gold' && (
-                            <span style={{ position: 'absolute', top: '10px', right: '10px', backgroundColor: '#e5e7eb', color: '#374151', padding: '4px 8px', borderRadius: '20px', fontSize: '11px', fontWeight: 'bold' }}>Verified Pro</span>
-                        )}
+            <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '45px' }}>
+                {SERVICE_CATEGORIES.map((category) => {
+                    const categoryTechs = getTechsForCategory(category.keywords);
 
-                        <img src={tech.photo || 'https://via.placeholder.com/300x200?text=No+Image'} alt={tech.name} style={{ width: '100%', height: '200px', objectFit: 'cover' }} />
-                        
-                        <div style={{ padding: '20px', flexGrow: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                            <h3 style={{ margin: 0, color: '#1f2937', fontSize: '20px' }}>{tech.name}</h3>
-                            <p style={{ margin: 0, color: '#2563eb', fontWeight: '600', fontSize: '14px' }}>{tech.specialty}</p>
-                            
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#d97706', fontWeight: 'bold', fontSize: '15px' }}>
-                                🌟 {tech.rating || '4.0'} / 5.0
-                            </div>
-
-                            <div style={{ borderTop: '1px solid #f3f4f6', marginTop: '10px', paddingTop: '15px' }}>
+                    return (
+                        <div key={category.id} style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '25px', border: '1px solid #e5e7eb', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #f3f4f6', paddingBottom: '15px', marginBottom: '25px', flexWrap: 'wrap', gap: '10px' }}>
+                                <h3 style={{ margin: 0, color: '#1f2937', fontSize: '22px', display: 'flex', alignItems: 'center', gap: '10px', fontWeight: 'bold' }}>
+                                    <span>{category.icon}</span> {category.title}
+                                </h3>
                                 <button 
-                                    onClick={() => handleBookClick(tech._id, tech.name, tech.specialty)}
-                                    onMouseEnter={() => setHoveredTechId(tech._id)}
-                                    onMouseLeave={() => setHoveredTechId(null)}
-                                    style={{ 
-                                        width: '100%', 
-                                        padding: '10px', 
-                                        backgroundColor: hoveredTechId === tech._id ? '#F97316' : '#111827', 
-                                        color: '#fff', 
-                                        border: 'none', 
-                                        borderRadius: '6px', 
-                                        fontWeight: 'bold', 
-                                        cursor: 'pointer',
-                                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                                        transform: hoveredTechId === tech._id ? 'translateY(-2px)' : 'translateY(0)',
-                                        boxShadow: hoveredTechId === tech._id ? '0 6px 15px rgba(249, 115, 22, 0.35)' : 'none'
-                                    }}
+                                    onClick={() => handleBookClick('', `General ${category.title} Expert`, category.title)}
+                                    style={{ backgroundColor: '#2563eb', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '20px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer' }}
                                 >
-                                    Book Now (Fee: ₹99)
+                                    Book {category.title} →
                                 </button>
                             </div>
+
+                            {categoryTechs.length > 0 ? (
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(270px, 1fr))', gap: '20px' }}>
+                                    {categoryTechs.map((tech) => {
+                                        const dynRating = calculateDynamicRating(tech);
+                                        return (
+                                            <div key={tech._id} style={{ backgroundColor: '#fff', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', border: tech.subscriptionPlan === 'Platinum' ? '2px solid #fbbf24' : '1px solid #e5e7eb', position: 'relative', display: 'flex', flexDirection: 'column' }}>
+                                                
+                                                {tech.subscriptionPlan === 'Platinum' && (
+                                                    <span style={{ position: 'absolute', top: '10px', right: '10px', backgroundColor: '#fbbf24', color: '#78350f', padding: '4px 8px', borderRadius: '20px', fontSize: '11px', fontWeight: 'bold', zIndex: 1 }}>⭐ Top Rated</span>
+                                                )}
+                                                {tech.subscriptionPlan === 'Gold' && (
+                                                    <span style={{ position: 'absolute', top: '10px', right: '10px', backgroundColor: '#e5e7eb', color: '#374151', padding: '4px 8px', borderRadius: '20px', fontSize: '11px', fontWeight: 'bold', zIndex: 1 }}>Verified Pro</span>
+                                                )}
+
+                                                <img src={tech.photo || tech.image || 'https://via.placeholder.com/300x200?text=No+Image'} alt={tech.name} style={{ width: '100%', height: '180px', objectFit: 'cover' }} />
+                                                
+                                                <div style={{ padding: '15px', flexGrow: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                    <h4 style={{ margin: 0, color: '#1f2937', fontSize: '18px' }}>{tech.name}</h4>
+                                                    <p style={{ margin: 0, color: '#2563eb', fontWeight: '600', fontSize: '13px' }}>{tech.specialty}</p>
+                                                    
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#d97706', fontWeight: 'bold', fontSize: '14px' }}>
+                                                        🌟 {dynRating} / 5.0
+                                                    </div>
+
+                                                    <div style={{ borderTop: '1px solid #f3f4f6', marginTop: '10px', paddingTop: '10px' }}>
+                                                        <button 
+                                                            onClick={() => handleBookClick(tech._id, tech.name, tech.specialty)}
+                                                            onMouseEnter={() => setHoveredTechId(tech._id)}
+                                                            onMouseLeave={() => setHoveredTechId(null)}
+                                                            style={{ 
+                                                                width: '100%', 
+                                                                padding: '10px', 
+                                                                backgroundColor: hoveredTechId === tech._id ? '#F97316' : '#111827', 
+                                                                color: '#fff', 
+                                                                border: 'none', 
+                                                                borderRadius: '6px', 
+                                                                fontWeight: 'bold', 
+                                                                cursor: 'pointer',
+                                                                fontSize: '13px',
+                                                                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                                                transform: hoveredTechId === tech._id ? 'translateY(-2px)' : 'translateY(0)'
+                                                            }}
+                                                        >
+                                                            Book Expert (Fee: ₹99)
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ) : (
+                                <div style={{ textAlign: 'center', padding: '20px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px dashed #d1d5db' }}>
+                                    <p style={{ margin: '0 0 10px 0', color: '#6b7280', fontSize: '14px' }}>Is category me filhal koi direct technician profile listed nahi hai.</p>
+                                    <button 
+                                        onClick={() => handleBookClick('', `General ${category.title} Expert`, category.title)}
+                                        style={{ backgroundColor: '#111827', color: '#ffffff', border: 'none', padding: '8px 16px', borderRadius: '6px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer' }}
+                                    >
+                                        Direct Service Request Book Karein
+                                    </button>
+                                </div>
+                            )}
+
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
 
-            {/* 🗺️ INTERACTIVE FORM MODAL */}
+            {/* 🗺️ INTERACTIVE FORM MODAL (FIXED TOP CUTOFF FOR PIC 2) */}
             {bookingForm.show && (
-                <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-                    <div style={{ backgroundColor: '#fff', padding: '25px', borderRadius: '12px', width: '90%', maxWidth: '480px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)', maxHeight: '95vh', overflowY: 'auto' }}>
+                <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', paddingTop: '80px', paddingBottom: '30px', zIndex: 99999, overflowY: 'auto' }}>
+                    <div style={{ backgroundColor: '#fff', padding: '25px', borderRadius: '16px', width: '90%', maxWidth: '480px', boxShadow: '0 10px 30px rgba(0,0,0,0.3)', maxHeight: 'calc(100vh - 110px)', overflowY: 'auto' }}>
                         <h3 style={{ margin: '0 0 15px 0', fontSize: '18px', color: '#111827' }}>Book Appointment with {bookingForm.techName}</h3>
                         
                         {bookingStatus && <p style={{ color: '#2563eb', fontWeight: 'bold', textAlign: 'center', fontSize: '14px' }}>{bookingStatus}</p>}
@@ -172,7 +237,6 @@ const ServicesGrid = () => {
                             <input type="text" placeholder="Your Phone Number" required value={customerDetails.phone} onChange={(e) => setCustomerDetails({...customerDetails, phone: e.target.value})} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db' }} />
                             <textarea placeholder="Your Full Address" required value={customerDetails.address} onChange={(e) => setCustomerDetails({...customerDetails, address: e.target.value})} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db', height: '55px', resize: 'none' }} />
                             
-                            {/* ⚡ NEW FEATURE: GPS Pin Drop Button */}
                             <button 
                                 type="button" 
                                 onClick={handleFetchLocation}
@@ -187,7 +251,6 @@ const ServicesGrid = () => {
                                     fontWeight: 'bold',
                                     cursor: 'pointer',
                                     fontSize: '13px',
-                                    transition: 'all 0.2s ease',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
@@ -197,14 +260,12 @@ const ServicesGrid = () => {
                                 📍 {geoLoading ? 'Fetching GPS Satellite...' : 'Drop My Live Location Pin'}
                             </button>
 
-                            {/* Dynamic Map Visual Status */}
                             {customerDetails.coordinates && (
                                 <p style={{ margin: 0, fontSize: '12px', color: '#16a34a', fontWeight: '600', textAlign: 'center' }}>
                                     ✓ Exact Pin Captured! Transmitting to Dashboard.
                                 </p>
                             )}
                             
-                            {/* LIVE DYNAMIC MAP GATEWAY */}
                             <div style={{ width: '100%', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e5e7eb' }}>
                                 <div style={{ background: '#f3f4f6', padding: '6px 10px', fontSize: '11px', fontWeight: 'bold', color: '#4b5563' }}>
                                     🗺️ Map Target View: {mapCenter}

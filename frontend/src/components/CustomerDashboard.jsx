@@ -58,7 +58,30 @@ function CustomerDashboard({ user, onBackHome }) {
     }
   };
 
-  // ⭐ SUBMIT RATING HANDLER (DETAILED ERROR HANDLING)
+  // 🗺️ HELPER TO CONVERT MAP URL IN NOTES TO CLICKABLE LINK (PIC 1 FIX)
+  const renderNotesWithLinks = (notesText) => {
+    if (!notesText) return null;
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const parts = notesText.split(urlRegex);
+
+    return parts.map((part, i) => {
+      if (part.match(urlRegex)) {
+        return (
+          <a
+            key={i}
+            href={part}
+            target="_blank"
+            rel="noreferrer"
+            className="badge bg-warning text-dark text-decoration-none ms-1 px-2 py-1 fw-bold"
+          >
+            🗺️ Open GPS Map
+          </a>
+        );
+      }
+      return part;
+    });
+  };
+
   const handleRatingSubmit = async (e) => {
     e.preventDefault();
     if (!ratingModalJob) return;
@@ -106,7 +129,7 @@ function CustomerDashboard({ user, onBackHome }) {
         </button>
       </div>
 
-      {/* SEARCH / AUTO-MEMORY BAR */}
+      {/* SEARCH BAR */}
       <div className="bg-white p-3 border rounded-3 mb-4 shadow-sm d-flex gap-2">
         <input
           type="text"
@@ -136,7 +159,6 @@ function CustomerDashboard({ user, onBackHome }) {
         </div>
       ) : (
         <>
-          {/* DIRECT BOOKINGS DISPLAY */}
           <div className="d-flex flex-column gap-3">
             {currentBookings.map((item) => {
               const step = getStatusStep(item.status);
@@ -152,7 +174,7 @@ function CustomerDashboard({ user, onBackHome }) {
                     </span>
                   </div>
 
-                  {/* REALTIME STATUS TRACKER BAR */}
+                  {/* REALTIME TRACKER BAR */}
                   <div className="my-3 py-3 px-3 bg-light rounded-3">
                     <div className="d-flex justify-content-between small fw-bold text-muted mb-2">
                       <span className={step >= 1 ? 'text-primary' : ''}>1. Request Received</span>
@@ -172,7 +194,14 @@ function CustomerDashboard({ user, onBackHome }) {
                     <div className="col-12 col-md-6">👤 <b>Client:</b> {item.clientName} ({item.phone})</div>
                     <div className="col-12 col-md-6">📍 <b>Address:</b> {item.address}</div>
                     <div className="col-12 col-md-6">📅 <b>Scheduled:</b> {item.bookingDate} ({item.bookingTime})</div>
-                    {item.notes && <div className="col-12">📝 <b>Notes:</b> {item.notes}</div>}
+                    
+                    {/* 🔧 CLICKABLE GPS LINK IN NOTES */}
+                    {item.notes && (
+                      <div className="col-12">
+                        📝 <b>Notes:</b> {renderNotesWithLinks(item.notes)}
+                      </div>
+                    )}
+
                     {item.assignedTechnician && (
                       <div className="col-12 mt-2 pt-2 border-top text-dark fw-bold">
                         👨‍🔧 Technician: {item.assignedTechnician.name || item.technician || 'Assigned'} {item.assignedTechnician.phone ? `(📞 ${item.assignedTechnician.phone})` : ''}
@@ -187,7 +216,7 @@ function CustomerDashboard({ user, onBackHome }) {
                     )}
                   </div>
 
-                  {/* ⭐ RATING SECTION FOR COMPLETED JOBS */}
+                  {/* RATING SECTION */}
                   {item.status === 'Completed' && (
                     <div className="mt-3 pt-3 border-top d-flex justify-content-between align-items-center flex-wrap gap-2">
                       {item.isRated ? (
@@ -212,7 +241,7 @@ function CustomerDashboard({ user, onBackHome }) {
             })}
           </div>
 
-          {/* PAGINATION SLIDES */}
+          {/* PAGINATION */}
           {totalPages > 1 && (
             <div className="d-flex justify-content-between align-items-center mt-4 bg-white p-3 rounded-4 border shadow-sm flex-wrap gap-2">
               <small className="text-muted fw-bold">
@@ -251,7 +280,7 @@ function CustomerDashboard({ user, onBackHome }) {
         </>
       )}
 
-      {/* ⭐ RATING POPUP MODAL */}
+      {/* RATING MODAL */}
       {ratingModalJob && (
         <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1050 }}>
           <div className="modal-dialog modal-dialog-centered">

@@ -11,6 +11,12 @@ const protect = async (req, res, next) => {
             const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fixora_secret_key_123');
             
             req.user = await User.findById(decoded.id).select('-password');
+
+            // ⚡ FIX: Agar DB me user nahi milta to yahan rok do (Server crash hone se bachega)
+            if (!req.user) {
+                return res.status(401).json({ message: 'User record not found, authorization denied' });
+            }
+
             return next();
         } catch (error) {
             return res.status(401).json({ message: 'Not authorized, token failed' });
@@ -25,9 +31,9 @@ const protect = async (req, res, next) => {
 // 🎭 Role Guard
 const authorize = (...roles) => {
     return (req, res, next) => {
-        if (!roles.includes(req.user.role)) {
+        if (!req.user || !roles.includes(req.user.role)) {
             return res.status(403).json({ 
-                message: `User role '${req.user.role}' is not authorized to access this route` 
+                message: `User role '${req.user?.role}' is not authorized to access this route` 
             });
         }
         next();

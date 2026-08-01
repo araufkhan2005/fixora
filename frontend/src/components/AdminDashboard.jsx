@@ -10,10 +10,9 @@ function AdminDashboard() {
   const [showTechList, setShowTechList] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
   
-  // 📄 MODAL STATES FOR PROOF & INVOICE
   const [selectedJobProof, setSelectedJobProof] = useState(null);
   const [invoiceJob, setInvoiceJob] = useState(null);
-  const [paymentMode, setPaymentMode] = useState('Cash'); // 'Cash' or 'UPI'
+  const [paymentMode, setPaymentMode] = useState('UPI');
 
   const [formData, setFormData] = useState({
     name: '', email: '', password: '', phone: '', specialty: '',
@@ -25,21 +24,63 @@ function AdminDashboard() {
 
   const BASE_API_URL = "http://127.0.0.1:5000/api/services";
 
+  const getAuthToken = () => {
+    const directToken = localStorage.getItem('token') || localStorage.getItem('userToken');
+    if (directToken) return directToken;
+
+    try {
+      const userObj = JSON.parse(localStorage.getItem('user') || localStorage.getItem('userInfo') || '{}');
+      return userObj.token || '';
+    } catch {
+      return '';
+    }
+  };
+
+  const getLiveTierInfo = (price) => {
+    const num = Number(price) || 0;
+    if (num >= 5000) return { plan: 'Platinum', rating: '4.9 ⭐', badge: 'bg-dark text-white fw-bold' };
+    if (num >= 3000) return { plan: 'Gold', rating: '4.7 ⭐', badge: 'bg-primary text-white fw-bold' };
+    if (num >= 1500) return { plan: 'Silver', rating: '4.5 ⭐', badge: 'bg-secondary text-white fw-bold' };
+    return { plan: 'Basic', rating: '4.3 ⭐', badge: 'bg-dark text-white fw-bold' };
+  };
+
   const fetchIncomingQueue = async () => {
     try {
       const response = await fetch(BASE_API_URL);
       const data = await response.json();
-      if (Array.isArray(data)) {
-        setQueue(data);
+      
+      const techResponse = await fetch(`${BASE_API_URL}/homepage-techs`);
+      let techData = [];
+      if (techResponse.ok) {
+        techData = await techResponse.json();
+        if (Array.isArray(techData)) setDbTechs(techData);
       }
 
-      const techResponse = await fetch(`${BASE_API_URL}/homepage-techs`);
-      if (techResponse.ok) {
-        const techData = await techResponse.json();
-        if (Array.isArray(techData)) {
-          setDbTechs(techData);
-        }
+      if (Array.isArray(data)) {
+        setQueue(data);
+
+        // 🎯 DYNAMIC SMART AUTO-SELECT LOGIC FOR DROPDOWN
+        const autoAllocMap = {};
+        data.forEach(item => {
+          // 1. Match by ID from customer or requestedTechId
+          const directId = item.requestedTechId || (typeof item.customer === 'string' ? item.customer : item.customer?._id);
+          let matchedTech = techData.find(t => String(t._id) === String(directId));
+
+          // 2. Fallback: Match technician name from notes (e.g. "Requested Tech: Aarav")
+          if (!matchedTech && item.notes) {
+            matchedTech = techData.find(t => 
+              item.notes.toLowerCase().includes(t.name.toLowerCase())
+            );
+          }
+
+          if (matchedTech) {
+            autoAllocMap[item._id] = matchedTech._id;
+          }
+        });
+
+        setSelectedTechs(prev => ({ ...autoAllocMap, ...prev }));
       }
+
     } catch (error) {
       console.error("Server sync failed:", error);
     } finally {
@@ -70,9 +111,13 @@ function AdminDashboard() {
     }
 
     try {
+      const token = getAuthToken();
       const response = await fetch(`${BASE_API_URL}/allocate/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ technician: selectedTechId, status: "Assigned" })
       });
 
@@ -92,9 +137,13 @@ function AdminDashboard() {
     if (!window.confirm("Kya aap sach mein is allocation ko cancel karna chahte hain?")) return;
 
     try {
+      const token = getAuthToken();
       const response = await fetch(`${BASE_API_URL}/allocate/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ technician: "", status: "Pending" })
       });
 
@@ -104,6 +153,32 @@ function AdminDashboard() {
       }
     } catch (error) {
       alert("❌ Server connection lost.");
+    }
+  };
+
+  const deleteTechnician = async (id, name) => {
+    if (!window.confirm(`⚠️ Kya aap sach mein Technician "${name}" ko remove karna chahte hain?`)) return;
+
+    try {
+      const token = getAuthToken();
+      const response = await fetch(`${BASE_API_URL}/delete-technician/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const resData = await response.json();
+        alert(`🗑️ ${resData.message || `Technician ${name} successfully removed!`}`);
+        fetchIncomingQueue();
+      } else {
+        const resData = await response.json();
+        alert(`❌ Removal failed: ${resData.message || resData.error || 'Server error'}`);
+      }
+    } catch (error) {
+      alert("❌ Server connection lost during technician removal.");
     }
   };
 
@@ -121,10 +196,21 @@ function AdminDashboard() {
     setSubmitting(true);
 
     try {
+      const token = getAuthToken();
+      const liveTier = getLiveTierInfo(formData.planPrice);
+
+      const payload = {
+        ...formData,
+        subscriptionPlan: liveTier.plan
+      };
+
       const response = await fetch(`${BASE_API_URL}/add-technician`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
       });
       
       const resData = await response.json();
@@ -152,7 +238,6 @@ function AdminDashboard() {
     }
   };
 
-  // 🖨️ PRINT / DOWNLOAD PDF INVOICE
   const handlePrintInvoice = () => {
     window.print();
   };
@@ -169,55 +254,35 @@ function AdminDashboard() {
   const totalSparePartsRevenue = totalGrossRevenue > totalVisitingCharges ? totalGrossRevenue - totalVisitingCharges : 0;
   const averageOrderValue = completedRequests > 0 ? Math.round(totalGrossRevenue / completedRequests) : 0;
 
-  // 📊 TECHNICIAN REVENUE LEADERBOARD
-  const techPerformanceMap = {};
-  completedJobsList.forEach(job => {
-    const techName = job.assignedTechnician?.name || job.technician || 'General Tech';
-    if (!techPerformanceMap[techName]) {
-      techPerformanceMap[techName] = { completedJobs: 0, totalRevenue: 0 };
-    }
-    techPerformanceMap[techName].completedJobs += 1;
-    techPerformanceMap[techName].totalRevenue += (Number(job.totalAmount) || 350);
-  });
+  const liveTierPreview = getLiveTierInfo(formData.planPrice);
 
   return (
     <div className="container-fluid px-4 py-4" style={{ marginTop: '30px' }}>
       
-      {/* 🖨️ STRICT SINGLE PAGE CARD PRINT RULE */}
       <style>{`
         @media print {
           @page {
             size: A4 portrait;
-            margin: 5mm;
+            margin: 8mm;
           }
-          html, body {
-            height: 100% !important;
-            max-height: 100vh !important;
-            overflow: hidden !important;
-            margin: 0 !important;
-            padding: 0 !important;
-          }
-          body * {
+          body {
             visibility: hidden !important;
+            background: #ffffff !important;
           }
           #printable-invoice-content, #printable-invoice-content * {
             visibility: visible !important;
           }
           #printable-invoice-content {
             position: absolute !important;
-            left: 50% !important;
-            top: 5mm !important;
-            transform: translateX(-50%) !important;
-            width: 85% !important;
-            max-width: 620px !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
             margin: 0 !important;
-            padding: 16px 20px !important;
-            border: 1px solid #ced4da !important;
-            border-radius: 16px !important;
+            padding: 20px !important;
+            border: 1px solid #dee2e6 !important;
+            border-radius: 18px !important;
             background: #ffffff !important;
             box-shadow: none !important;
-            page-break-inside: avoid !important;
-            break-inside: avoid !important;
           }
           .d-print-none {
             display: none !important;
@@ -225,7 +290,7 @@ function AdminDashboard() {
         }
       `}</style>
 
-      {/* HEADER SECTION WITH TOGGLES */}
+      {/* HEADER SECTION */}
       <div className="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4 flex-wrap gap-2">
         <div>
           <h4 className="fw-bold m-0 text-dark"><i className="fa-solid fa-lock text-danger me-2"></i>FIXORA Operations Command Center</h4>
@@ -287,7 +352,7 @@ function AdminDashboard() {
         </div>
       </div>
 
-      {/* REVENUE & EARNINGS ANALYTICS PANEL */}
+      {/* REVENUE ANALYTICS PANEL */}
       {showAnalytics && (
         <div className="bg-white border rounded-4 p-4 shadow-sm mb-4 border-start border-4 border-success">
           <div className="d-flex justify-content-between align-items-center mb-3">
@@ -328,48 +393,10 @@ function AdminDashboard() {
               </div>
             </div>
           </div>
-
-          <h6 className="fw-bold text-dark mb-2">🏆 Technician Earnings & Order Leaderboard</h6>
-          {Object.keys(techPerformanceMap).length === 0 ? (
-            <p className="text-muted small m-0">Abhi tak kisi technician ne job complete nahi ki hai.</p>
-          ) : (
-            <div className="table-responsive border rounded-3">
-              <table className="table table-sm align-middle m-0">
-                <thead className="table-light small">
-                  <tr>
-                    <th>Technician Name</th>
-                    <th>Jobs Completed</th>
-                    <th>Total Revenue Generated</th>
-                    <th>Revenue Contribution Share</th>
-                  </tr>
-                </thead>
-                <tbody className="small">
-                  {Object.entries(techPerformanceMap).map(([tech, data], idx) => {
-                    const share = totalGrossRevenue > 0 ? Math.round((data.totalRevenue / totalGrossRevenue) * 100) : 0;
-                    return (
-                      <tr key={idx}>
-                        <td className="fw-bold text-dark">👨‍🔧 {tech}</td>
-                        <td><span className="badge bg-secondary">{data.completedJobs} Jobs</span></td>
-                        <td className="fw-bold text-success">₹{data.totalRevenue}</td>
-                        <td style={{ minWidth: '160px' }}>
-                          <div className="d-flex align-items-center gap-2">
-                            <div className="progress flex-grow-1" style={{ height: '8px' }}>
-                              <div className="progress-bar bg-success rounded-pill" style={{ width: `${share}%` }}></div>
-                            </div>
-                            <span className="fw-bold text-muted">{share}%</span>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
         </div>
       )}
 
-      {/* VIEW TECHNICIANS DIRECTORY */}
+      {/* TECHNICIANS DIRECTORY */}
       {showTechList && (
         <div className="bg-white border rounded-4 p-4 shadow-sm mb-4">
           <h5 className="fw-bold text-dark mb-3">Registered Technicians Directory</h5>
@@ -377,9 +404,9 @@ function AdminDashboard() {
             <p className="text-muted small">Koi technician registered nahi hai.</p>
           ) : (
             <div className="row g-3">
-              {dbTechs.map((t, idx) => (
-                <div key={idx} className="col-12 col-md-4">
-                  <div className="border rounded-3 p-3 d-flex gap-3 align-items-center bg-light">
+              {dbTechs.map((t) => (
+                <div key={t._id || t.email} className="col-12 col-md-4">
+                  <div className="border rounded-3 p-3 d-flex gap-3 align-items-center bg-light position-relative">
                     {(t.image || t.photo) ? (
                       <img src={t.image || t.photo} alt={t.name} style={{ width: '55px', height: '55px', objectFit: 'cover', borderRadius: '50%' }} />
                     ) : (
@@ -387,11 +414,19 @@ function AdminDashboard() {
                         {t.name.charAt(0)}
                       </div>
                     )}
-                    <div>
+                    <div className="flex-grow-1 pe-3">
                       <h6 className="fw-bold m-0 text-dark">{t.name}</h6>
-                      <small className="text-muted d-block">🛠️ {t.specialty || 'General Expert'} | ⭐ {t.rating || 4.5} Rating</small>
-                      <small className="text-primary d-block">✉️ {t.email}</small>
+                      <small className="text-muted d-block">🛠️ {t.specialty || 'General Expert'} | ⭐ {t.rating || 4.5}</small>
+                      <small className="text-success d-block fw-bold">💰 Plan: ₹{t.planPrice || 0} ({t.subscriptionPlan || 'Basic'})</small>
                     </div>
+
+                    <button 
+                      onClick={() => deleteTechnician(t._id, t.name)}
+                      className="btn btn-sm btn-outline-danger border-0 rounded-circle p-2 position-absolute top-0 end-0 m-1"
+                      title="Remove Technician"
+                    >
+                      🗑️
+                    </button>
                   </div>
                 </div>
               ))}
@@ -400,16 +435,30 @@ function AdminDashboard() {
         </div>
       )}
 
-      {/* REGISTER NEW TECHNICIAN FORM */}
+      {/* ➕ REGISTER NEW TECHNICIAN FORM */}
       {showAddForm && (
-        <div className="bg-white border rounded-4 p-4 shadow-sm mb-4">
-          <h6 className="fw-bold text-dark mb-3">Register New Technician Account</h6>
+        <div className="bg-white border rounded-4 p-4 shadow-sm mb-4 border-primary border-3">
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <h6 className="fw-bold text-dark m-0 fs-5">Register New Technician Account</h6>
+            <span className="badge bg-light text-muted border px-3 py-2 rounded-3">Auto-Priority Ranking System</span>
+          </div>
           
           {statusMessage.text && (
             <div className={`alert ${statusMessage.type === 'success' ? 'alert-success' : 'alert-danger'} text-center small fw-bold py-2 mb-3`} role="alert">
               {statusMessage.text}
             </div>
           )}
+
+          {/* 🏷️ PLAN PRICE TO RATING LEGEND BOX */}
+          <div className="bg-light p-3 rounded-3 border mb-3">
+            <small className="fw-bold text-dark d-block mb-2">🏷️ Auto-Assigned Plan & Rating Legend:</small>
+            <div className="d-flex flex-wrap gap-2 small">
+              <span className="badge bg-warning text-dark border px-2 py-1">≥ ₹5,000 → Platinum (4.9 ⭐) Rank #1</span>
+              <span className="badge bg-primary text-white px-2 py-1">₹3,000 - ₹4,999 → Gold (4.7 ⭐) Rank #2</span>
+              <span className="badge bg-secondary text-white px-2 py-1">₹1,500 - ₹2,999 → Silver (4.5 ⭐) Rank #3</span>
+              <span className="badge bg-dark text-white px-2 py-1">&lt; ₹1,500 → Basic (4.3 ⭐) Rank #4</span>
+            </div>
+          </div>
 
           <form onSubmit={handleFormSubmit}>
             <div className="row g-3">
@@ -434,8 +483,8 @@ function AdminDashboard() {
               </div>
 
               <div className="col-12 col-md-3">
-                <label className="small fw-semibold text-muted mb-1">Specialty</label>
-                <input type="text" name="specialty" className="form-control form-control-sm rounded-3" value={formData.specialty} onChange={handleFormChange} placeholder="Fridge expert" />
+                <label className="small fw-semibold text-muted mb-1">Specialty *</label>
+                <input type="text" name="specialty" className="form-control form-control-sm rounded-3" value={formData.specialty} onChange={handleFormChange} required placeholder="e.g. Fridge expert" />
               </div>
 
               <div className="col-12 col-md-2">
@@ -443,13 +492,40 @@ function AdminDashboard() {
                 <input type="number" name="age" className="form-control form-control-sm rounded-3" value={formData.age} onChange={handleFormChange} placeholder="e.g. 26" />
               </div>
 
+              {/* 💰 PLAN PRICE INPUT FIELD */}
               <div className="col-12 col-md-4">
+                <label className="small fw-bold text-dark mb-1">Plan Price (₹) *</label>
+                <div className="input-group input-group-sm">
+                  <span className="input-group-text fw-bold bg-light">₹</span>
+                  <input 
+                    type="number" 
+                    name="planPrice" 
+                    className="form-control form-control-sm fw-bold" 
+                    value={formData.planPrice} 
+                    onChange={handleFormChange} 
+                    required 
+                    placeholder="e.g. 5000" 
+                  />
+                </div>
+              </div>
+
+              <div className="col-12 col-md-6">
                 <label className="small fw-semibold text-muted mb-1">Profile Photo</label>
                 <input type="file" accept="image/*" className="form-control form-control-sm rounded-3" onChange={handleImageChange} />
               </div>
 
+              {/* 🌟 LIVE PREVIEW BADGE */}
+              <div className="col-12 col-md-6 d-flex align-items-center">
+                <div className="p-2 bg-light border rounded-3 w-100 d-flex justify-content-between align-items-center">
+                  <span className="small text-muted fw-bold">Calculated Tier Preview:</span>
+                  <span className={`badge ${liveTierPreview.badge} px-3 py-2 fs-6`}>
+                    {liveTierPreview.plan} ({liveTierPreview.rating})
+                  </span>
+                </div>
+              </div>
+
               <div className="col-12 text-end">
-                <button type="submit" disabled={submitting} className="btn btn-sm btn-primary fw-bold rounded-3 px-4">
+                <button type="submit" disabled={submitting} className="btn btn-primary btn-sm fw-bold rounded-3 px-4">
                   {submitting ? 'Saving...' : '💾 Save Technician'}
                 </button>
               </div>
@@ -458,7 +534,7 @@ function AdminDashboard() {
         </div>
       )}
 
-      {/* BOOKINGS MAIN TABLE */}
+      {/* BOOKINGS MAIN TABLE QUEUE */}
       {loading ? (
         <div className="text-center py-5 text-muted"><i className="fa-solid fa-spinner fa-spin me-2 fs-4"></i> Synchronizing database queue...</div>
       ) : (
@@ -477,87 +553,90 @@ function AdminDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {queue.map((item) => (
-                  <tr key={item._id}>
-                    <td>
-                      <div className="fw-bold text-dark">{item.clientName}</div>
-                      <small className="text-muted d-block">📞 {item.phone}</small>
-                      <small className="text-muted text-wrap d-block" style={{ maxWidth: '180px' }}>📍 {item.address}</small>
-                    </td>
+                {queue.map((item) => {
+                  const mapMatch = (item.notes || item.address || '').match(/https?:\/\/[^\s]+/);
+                  const mapUrl = item.coordinates || (mapMatch ? mapMatch[0] : null);
 
-                    <td>
-                      <span className="badge bg-light text-dark border">{item.serviceType}</span>
-                      <small className="d-block text-muted mt-1">📅 {item.bookingDate || 'Today'}</small>
-                    </td>
-
-                    <td>
-                      <span className={`badge ${item.status === 'Completed' ? 'bg-success-subtle text-success' : item.status === 'Accepted' ? 'bg-info-subtle text-info' : item.status === 'Assigned' ? 'bg-primary-subtle text-primary' : 'bg-warning-subtle text-warning'} px-3 py-2 rounded-3 fw-bold`}>
-                        {item.status || 'Pending'}
-                      </span>
-                    </td>
-
-                    <td>
-                      {item.status === 'Assigned' || item.status === 'Accepted' || item.status === 'Completed' ? (
-                        <span className="text-dark fw-bold small d-block">
-                          👨‍🔧 {item.assignedTechnician?.name || item.technician || 'Assigned'}
-                        </span>
-                      ) : (
-                        <select className="form-select form-select-sm rounded-3" value={selectedTechs[item._id] || ''} onChange={(e) => handleTechChange(item._id, e.target.value)}>
-                          <option value="">Select Tech...</option>
-                          {dbTechs.map((tech) => (
-                            <option key={tech._id} value={tech._id}>
-                              {tech.name} ({tech.specialty || 'Expert'})
-                            </option>
-                          ))}
-                        </select>
-                      )}
-                    </td>
-
-                    {/* PROOFS & BILLING BUTTONS */}
-                    <td>
-                      <div className="d-flex flex-column gap-1">
-                        <button 
-                          onClick={() => setSelectedJobProof(item)}
-                          className="btn btn-xs btn-outline-dark fw-bold rounded-2 text-nowrap"
-                          style={{ fontSize: '11px', padding: '2px 8px' }}
-                        >
-                          🔍 View Photos & Parts
-                        </button>
-
-                        {item.status === 'Completed' && (
-                          <button 
-                            onClick={() => { setInvoiceJob(item); setPaymentMode('Cash'); }}
-                            className="btn btn-xs btn-success fw-bold rounded-2 text-nowrap"
-                            style={{ fontSize: '11px', padding: '2px 8px' }}
-                          >
-                            📄 PDF Invoice
-                          </button>
+                  return (
+                    <tr key={item._id}>
+                      <td>
+                        <div className="fw-bold text-dark">{item.clientName}</div>
+                        <small className="text-muted d-block">📞 {item.phone}</small>
+                        <small className="text-muted text-wrap d-block" style={{ maxWidth: '180px' }}>📍 {item.address}</small>
+                        
+                        {/* 📍 GPS LOCATION LINK BUTTON */}
+                        {mapUrl && (
+                          <a href={mapUrl} target="_blank" rel="noreferrer" className="badge bg-warning text-dark text-decoration-none mt-1 d-inline-block fw-bold">
+                            🗺️ Open GPS Map Location
+                          </a>
                         )}
-                      </div>
-                    </td>
+                      </td>
 
-                    <td>
-                      {item.status === 'Completed' ? (
-                        <span className="text-success small fw-bold">✓ Job Resolved</span>
-                      ) : (item.status === 'Assigned' || item.status === 'Accepted') ? (
-                        <button className="btn btn-sm btn-danger fw-bold rounded-3 px-3" onClick={() => cancelAllocation(item._id)}>
-                          Cancel
-                        </button>
-                      ) : (
-                        <button className="btn btn-sm btn-primary fw-bold rounded-3 px-3" onClick={() => allocateTechnician(item._id)}>
-                          Allocate
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                      <td>
+                        <span className="badge bg-light text-dark border">{item.serviceType}</span>
+                        <small className="d-block text-muted mt-1">📅 {item.bookingDate || 'Today'}</small>
+                      </td>
+
+                      <td>
+                        <span className={`badge ${item.status === 'Completed' ? 'bg-success-subtle text-success' : item.status === 'Accepted' ? 'bg-info-subtle text-info' : item.status === 'Assigned' ? 'bg-primary-subtle text-primary' : 'bg-warning-subtle text-warning'} px-3 py-2 rounded-3 fw-bold`}>
+                          {item.status || 'Pending'}
+                        </span>
+                      </td>
+
+                      <td>
+                        {item.status === 'Assigned' || item.status === 'Accepted' || item.status === 'Completed' ? (
+                          <span className="text-dark fw-bold small d-block">
+                            👨‍🔧 {item.assignedTechnician?.name || item.technician || 'Assigned'}
+                          </span>
+                        ) : (
+                          /* DROPDOWN WITH AUTO-SELECTED REQUESTED TECHNICIAN */
+                          <select 
+                            className="form-select form-select-sm rounded-3 fw-bold border-primary" 
+                            value={selectedTechs[item._id] || ''} 
+                            onChange={(e) => handleTechChange(item._id, e.target.value)}
+                          >
+                            <option value="">Select Tech...</option>
+                            {dbTechs.map((tech) => (
+                              <option key={tech._id} value={tech._id}>
+                                {tech.name} ({tech.specialty || 'Expert'})
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                      </td>
+
+                      <td>
+                        <div className="d-flex flex-column gap-1">
+                          <button onClick={() => setSelectedJobProof(item)} className="btn btn-xs btn-outline-dark fw-bold rounded-2 text-nowrap" style={{ fontSize: '11px', padding: '2px 8px' }}>
+                            🔍 View Photos & Parts
+                          </button>
+                          {item.status === 'Completed' && (
+                            <button onClick={() => { setInvoiceJob(item); setPaymentMode('UPI'); }} className="btn btn-xs btn-success fw-bold rounded-2 text-nowrap" style={{ fontSize: '11px', padding: '2px 8px' }}>
+                              📄 PDF Invoice
+                            </button>
+                          )}
+                        </div>
+                      </td>
+
+                      <td>
+                        {item.status === 'Completed' ? (
+                          <span className="text-success small fw-bold">✓ Job Resolved</span>
+                        ) : (item.status === 'Assigned' || item.status === 'Accepted') ? (
+                          <button className="btn btn-sm btn-danger fw-bold rounded-3 px-3" onClick={() => cancelAllocation(item._id)}>Cancel</button>
+                        ) : (
+                          <button className="btn btn-sm btn-primary fw-bold rounded-3 px-3" onClick={() => allocateTechnician(item._id)}>Allocate</button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         </div>
       )}
 
-      {/* MODAL 1: PROOFS LOG */}
+      {/* PROOFS MODAL */}
       {selectedJobProof && (
         <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1050 }}>
           <div className="modal-dialog modal-dialog-centered modal-lg">
@@ -643,14 +722,13 @@ function AdminDashboard() {
         </div>
       )}
 
-      {/* MODAL 2: PRINTABLE PDF INVOICE */}
+      {/* 📄 PRINTABLE INVOICE MODAL WITH RESTORED UPI QR CODE */}
       {invoiceJob && (
         <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 1060 }}>
           <div className="modal-dialog modal-dialog-centered modal-lg">
-            <div className="modal-content rounded-4 p-3 shadow bg-white" id="printable-invoice-content">
+            <div className="modal-content rounded-4 p-4 shadow bg-white" id="printable-invoice-content">
               
-              {/* PAYMENT MODE SELECTION BUTTONS (Hidden during PDF print) */}
-              <div className="d-flex align-items-center justify-content-between bg-light p-2 px-3 rounded-3 border mb-2 d-print-none">
+              <div className="d-flex align-items-center justify-content-between bg-light p-3 rounded-3 border mb-3 d-print-none">
                 <span className="fw-bold text-dark small">Select Payment Mode for Bill:</span>
                 <div className="btn-group" role="group">
                   <button 
@@ -670,23 +748,22 @@ function AdminDashboard() {
                 </div>
               </div>
 
-              {/* INVOICE HEADER */}
-              <div className="d-flex justify-content-between align-items-center border-bottom pb-2 mb-2">
+              <div className="d-flex justify-content-between align-items-center border-bottom pb-3 mb-3">
                 <div>
-                  <h4 className="fw-bold text-primary m-0">FIXORA</h4>
-                  <small className="text-muted" style={{ fontSize: '11px' }}>Elite Home Appliance Repair & Services</small>
+                  <h3 className="fw-bold text-primary m-0">FIXORA</h3>
+                  <small className="text-muted">Elite Home Appliance Repair & Services</small>
                 </div>
                 <div className="text-end">
-                  <h6 className="fw-bold text-dark m-0">TAX INVOICE</h6>
-                  <small className="text-muted d-block" style={{ fontSize: '11px' }}>Invoice #: FIX-{invoiceJob._id.slice(-6).toUpperCase()}</small>
-                  <small className="text-muted d-block" style={{ fontSize: '11px' }}>Date: {new Date().toLocaleDateString()}</small>
+                  <h5 className="fw-bold text-dark m-0">TAX INVOICE</h5>
+                  <small className="text-muted">Invoice #: FIX-{invoiceJob._id.slice(-6).toUpperCase()}</small>
+                  <br />
+                  <small className="text-muted">Date: {new Date().toLocaleDateString()}</small>
                 </div>
               </div>
 
-              {/* CLIENT & TECH INFO */}
-              <div className="row g-2 mb-2 small" style={{ fontSize: '12px' }}>
+              <div className="row g-3 mb-3 small">
                 <div className="col-6">
-                  <div className="bg-light p-2 rounded-3 border">
+                  <div className="bg-light p-3 rounded-3 border">
                     <strong className="text-dark d-block mb-1">Customer Details:</strong>
                     <div>Name: <b>{invoiceJob.clientName}</b></div>
                     <div>Phone: {invoiceJob.phone}</div>
@@ -695,26 +772,25 @@ function AdminDashboard() {
                 </div>
 
                 <div className="col-6">
-                  <div className="bg-light p-2 rounded-3 border">
+                  <div className="bg-light p-3 rounded-3 border">
                     <strong className="text-dark d-block mb-1">Service & Specialist Info:</strong>
                     <div>Service: <b>{invoiceJob.serviceType}</b></div>
                     <div>Assigned Expert: {invoiceJob.assignedTechnician?.name || invoiceJob.technician || 'Certified Tech'}</div>
-                    <div>Status: <span className="badge bg-success" style={{ fontSize: '10px' }}>Job Completed</span></div>
+                    <div>Status: <span className="badge bg-success">Job Completed</span></div>
                   </div>
                 </div>
               </div>
 
-              {/* ITEMIZED BILLING TABLE */}
-              <div className="table-responsive border rounded-3 mb-2">
-                <table className="table table-sm table-bordered align-middle m-0">
+              <div className="table-responsive border rounded-3 mb-3">
+                <table className="table table-bordered align-middle m-0">
                   <thead className="table-dark small">
                     <tr>
-                      <th style={{ width: '40px' }}>#</th>
+                      <th>#</th>
                       <th>Service / Item Description</th>
-                      <th className="text-end" style={{ width: '120px' }}>Amount (₹)</th>
+                      <th className="text-end">Amount (₹)</th>
                     </tr>
                   </thead>
-                  <tbody className="small" style={{ fontSize: '12px' }}>
+                  <tbody className="small">
                     <tr>
                       <td>1</td>
                       <td>Visiting Charge & Diagnostic Repair Fee</td>
@@ -729,62 +805,50 @@ function AdminDashboard() {
                     ))}
                     <tr className="table-light">
                       <td colSpan="2" className="text-end fw-bold">Total Amount Payable:</td>
-                      <td className="text-end fw-bold text-success">₹{invoiceJob.totalAmount || 350}</td>
+                      <td className="text-end fw-bold fs-6 text-success">₹{invoiceJob.totalAmount || 350}</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
 
-              {/* 🟢 PAYMENT METHOD & STATUS */}
-              <div className="bg-light p-2 px-3 rounded-3 border mb-2">
+              {/* 🟢 RESTORED RIGHT SIDE UPI QR CODE */}
+              <div className="bg-light p-3 rounded-3 border mb-3">
                 <div className="d-flex justify-content-between align-items-center">
                   <div>
-                    <strong className="text-dark d-block mb-1" style={{ fontSize: '12px' }}>Payment Method & Status:</strong>
-                    <div className="small text-dark" style={{ fontSize: '12px' }}>
+                    <strong className="text-dark d-block mb-1">Payment Method & Status:</strong>
+                    <div className="small text-dark">
                       Payment Mode: <b className={paymentMode === 'Cash' ? 'text-success' : 'text-primary'}>
                         {paymentMode === 'Cash' ? '💵 Cash Payment' : '📱 UPI / Online Payment'}
                       </b>
                     </div>
                     {paymentMode === 'UPI' && (
-                      <small className="text-muted d-block mt-1" style={{ fontSize: '11px' }}>
+                      <small className="text-muted d-block mt-1">
                         Merchant UPI ID: <b>fixora@upi</b>
                       </small>
                     )}
                   </div>
 
-                  <div className="text-end">
-                    {paymentMode === 'Cash' ? (
-                      <span className="badge bg-success px-3 py-2" style={{ fontSize: '12px' }}>
-                        ✓ Cash Payment Done
-                      </span>
-                    ) : (
-                      <>
-                        {/* SCREEN PREVIEW PAR QR CODE DIKHEGA (HIDDEN IN PRINT) */}
-                        <div className="text-center bg-white p-1 rounded-3 border shadow-sm d-print-none">
-                          <img 
-                            src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(`upi://pay?pa=fixora@upi&pn=FIXORA%20Services&am=${invoiceJob.totalAmount || 350}&cu=INR`)}`} 
-                            alt="UPI QR Code" 
-                            style={{ width: '70px', height: '70px' }} 
-                          />
-                          <small className="d-block fw-bold text-primary" style={{ fontSize: '9px' }}>
-                            Scan to Pay ₹{invoiceJob.totalAmount || 350}
-                          </small>
-                        </div>
-
-                        {/* PDF PRINT PAR SIRF BADGE DIKHEGA */}
-                        <span className="badge bg-primary px-3 py-2 d-none d-print-inline-block" style={{ fontSize: '12px' }}>
-                          ✓ UPI Payment Done
-                        </span>
-                      </>
+                  <div className="text-end d-flex align-items-center gap-3">
+                    {paymentMode === 'UPI' && (
+                      <div className="text-center bg-white p-2 rounded-3 border shadow-sm d-print-none">
+                        <img 
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(`upi://pay?pa=fixora@upi&pn=FIXORA%20Services&am=${invoiceJob.totalAmount || 350}&cu=INR`)}`} 
+                          alt="UPI QR Code" 
+                          style={{ width: '85px', height: '85px' }} 
+                        />
+                        <small className="d-block fw-bold text-primary mt-1" style={{ fontSize: '10px' }}>
+                          Scan to Pay ₹{invoiceJob.totalAmount || 350}
+                        </small>
+                      </div>
                     )}
+                    <span className="badge bg-success px-3 py-2 fs-6">
+                      ✓ Payment Done
+                    </span>
                   </div>
                 </div>
               </div>
 
-              <p className="text-muted text-center m-0 mb-2" style={{ fontSize: '10px' }}>Thank you for choosing FIXORA! Official system-generated tax invoice.</p>
-
-              {/* ACTION BUTTONS (Hidden during print) */}
-              <div className="d-flex justify-content-end gap-2 border-top pt-2 d-print-none">
+              <div className="d-flex justify-content-end gap-2 border-top pt-3 d-print-none">
                 <button onClick={() => setInvoiceJob(null)} className="btn btn-sm btn-outline-secondary fw-bold rounded-3">
                   Close
                 </button>

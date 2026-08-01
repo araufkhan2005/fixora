@@ -10,7 +10,7 @@ const technicianSchema = new mongoose.Schema({
     rating: { type: Number, default: 4.5 },
     age: { type: Number, default: 25 },
     subscriptionPlan: { type: String, default: 'Basic' },
-    planPrice: { type: Number, default: 0 }
+    planPrice: { type: Number, required: true }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Technician', technicianSchema);

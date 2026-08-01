@@ -6,6 +6,9 @@ const User = require('../models/User');
 const Technician = require('../models/Technician');
 const cloudinary = require('../config/cloudinary');
 
+// 🛡️ Auth Middlewares Import
+const { protect, authorize } = require('../middleware/authMiddleware');
+
 // ==========================================
 // ☁️ CLOUDINARY IMAGE UPLOAD API
 // ==========================================
@@ -30,14 +33,16 @@ router.post('/upload-image', async (req, res) => {
 // ==========================================
 router.post('/book', async (req, res) => {
     try {
-        const { clientName, phone, address, serviceType, bookingDate, bookingTime, applianceImage, customerId, notes } = req.body;
+        const { clientName, phone, address, serviceType, bookingDate, bookingTime, applianceImage, customerId, requestedTechId, notes } = req.body;
 
         if (!clientName || !phone || !address || !serviceType) {
             return res.status(400).json({ message: 'Name, Phone, Address and Service Type are required!' });
         }
 
+        const targetTechId = requestedTechId || customerId;
+
         const newBooking = new Booking({
-            customer: customerId && mongoose.Types.ObjectId.isValid(customerId) ? customerId : null,
+            customer: targetTechId && mongoose.Types.ObjectId.isValid(targetTechId) ? targetTechId : null,
             clientName,
             phone,
             address,
@@ -81,10 +86,13 @@ router.get('/customer-bookings/:identifier', async (req, res) => {
 
 // ==========================================
 // 📥 FETCH LIVE TECHNICIANS FOR HOME & ADMIN
+// ⚡ SORTED BY HIGHEST PLAN PRICE FIRST
 // ==========================================
 router.get('/homepage-techs', async (req, res) => {
     try {
-        const technicians = await User.find({ role: 'technician' }).select('-password');
+        const technicians = await User.find({ role: 'technician' })
+            .sort({ planPrice: -1, rating: -1 })
+            .select('-password');
         res.status(200).json(technicians);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -93,7 +101,9 @@ router.get('/homepage-techs', async (req, res) => {
 
 router.get('/get-technicians', async (req, res) => {
     try {
-        const technicians = await User.find({ role: 'technician' }).select('-password');
+        const technicians = await User.find({ role: 'technician' })
+            .sort({ planPrice: -1, rating: -1 })
+            .select('-password');
         res.status(200).json(technicians);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -120,49 +130,121 @@ router.get('/', async (req, res) => {
 });
 
 // ==========================================
-// ⚙️ ADD TECHNICIAN
+// ⚙️ ADD TECHNICIAN (AUTO RATING & PLAN BY PRICE)
 // ==========================================
-router.post('/add-technician', async (req, res) => {
+router.post('/add-technician', protect, authorize('admin'), async (req, res) => {
     try {
         const { name, email, password, phone, specialty, age, address, subscriptionPlan, planPrice, image } = req.body;
         if (!name || !email || !password || !phone) {
             return res.status(400).json({ message: 'Name, Email, Password, and Phone are required fields!' });
         }
+
         const userExists = await User.findOne({ email });
         if (userExists) return res.status(400).json({ message: 'Is email se pehle se user registered hai!' });
 
         const photoUrl = image || '';
+        const numericPlanPrice = Number(planPrice) || 0;
+
         let calculatedRating = 4.3;
-        if (subscriptionPlan === 'Platinum') calculatedRating = 4.9;
-        else if (subscriptionPlan === 'Gold') calculatedRating = 4.7;
+        let finalPlan = subscriptionPlan;
+
+        if (numericPlanPrice >= 5000) {
+            calculatedRating = 4.9;
+            finalPlan = finalPlan || 'Platinum';
+        } else if (numericPlanPrice >= 3000) {
+            calculatedRating = 4.7;
+            finalPlan = finalPlan || 'Gold';
+        } else if (numericPlanPrice >= 1500) {
+            calculatedRating = 4.5;
+            finalPlan = finalPlan || 'Silver';
+        } else {
+            calculatedRating = 4.3;
+            finalPlan = finalPlan || 'Basic';
+        }
 
         const newTechUser = await User.create({
-            name, email, password, phone, role: 'technician',
-            specialty: specialty || 'General Expert', age: Number(age) || 25,
-            address: address || '', subscriptionPlan: subscriptionPlan || 'Basic',
-            planPrice: Number(planPrice) || 0, image: photoUrl, photo: photoUrl
+            name, 
+            email, 
+            password, 
+            phone, 
+            role: 'technician',
+            specialty: specialty || 'General Expert', 
+            age: Number(age) || 25,
+            address: address || '', 
+            subscriptionPlan: finalPlan,
+            planPrice: numericPlanPrice, 
+            image: photoUrl, 
+            photo: photoUrl, 
+            rating: calculatedRating
         });
 
-        await Technician.create({
-            _id: newTechUser._id, name, email, phone,
-            specialty: specialty || 'General Expert', age: Number(age) || 25,
-            address: address || '', subscriptionPlan: subscriptionPlan || 'Basic',
-            planPrice: Number(planPrice) || 0, photo: photoUrl, rating: calculatedRating
-        });
+        try {
+            await Technician.create({
+                _id: newTechUser._id, 
+                name, 
+                email, 
+                phone,
+                specialty: specialty || 'General Expert', 
+                age: Number(age) || 25,
+                address: address || '', 
+                subscriptionPlan: finalPlan,
+                planPrice: numericPlanPrice, 
+                photo: photoUrl, 
+                rating: calculatedRating
+            });
+        } catch (techErr) {
+            await User.findByIdAndDelete(newTechUser._id);
+            return res.status(500).json({ message: "Technician Profile Creation Failed", error: techErr.message });
+        }
 
-        res.status(201).json({ message: 'Technician successfully added to Database!', data: newTechUser });
+        res.status(201).json({ message: '🎉 Technician successfully added with auto rating!', data: newTechUser });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 });
 
 // ==========================================
-// 📤 ADMIN ALLOCATE TECHNICIAN ROUTE
+// 🗑️ DELETE / REMOVE TECHNICIAN ROUTE
 // ==========================================
-router.put('/allocate/:id', async (req, res) => {
+const deleteTechnicianHandler = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ message: 'Invalid Technician ID format!' });
+        }
+
+        const deletedUser = await User.findByIdAndDelete(id);
+        const deletedTech = await Technician.findByIdAndDelete(id);
+
+        if (!deletedUser && !deletedTech) {
+            return res.status(404).json({ message: 'Technician not found in database!' });
+        }
+
+        await Booking.updateMany(
+            { assignedTechnician: id },
+            { $set: { assignedTechnician: null, status: 'Pending' } }
+        );
+
+        res.status(200).json({ message: '🗑️ Technician successfully removed!' });
+    } catch (error) {
+        console.error("Delete Technician Error:", error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+router.delete('/delete-technician/:id', protect, authorize('admin'), deleteTechnicianHandler);
+router.delete('/delete-tech/:id', protect, authorize('admin'), deleteTechnicianHandler);
+router.delete('/technician/:id', protect, authorize('admin'), deleteTechnicianHandler);
+
+// ==========================================
+// 📤 ADMIN ALLOCATE TECHNICIAN ROUTE (WARNING FIXED)
+// ==========================================
+router.put('/allocate/:id', protect, authorize('admin'), async (req, res) => {
     try {
         const { technician, status } = req.body;
         let techRecord = null;
+
         if (technician && typeof technician === 'string' && technician.trim() !== "") {
             if (mongoose.Types.ObjectId.isValid(technician)) {
                 techRecord = await User.findById(technician);
@@ -175,11 +257,13 @@ router.put('/allocate/:id', async (req, res) => {
                 });
             }
         }
+
         const updated = await Booking.findByIdAndUpdate(
             req.params.id,
             { assignedTechnician: techRecord ? techRecord._id : null, status: status || "Assigned" },
-            { returnDocument: 'after' }
+            { returnDocument: 'after' } // ⚡ Fixed Mongoose Deprecation Warning
         );
+
         res.status(200).json(updated);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -187,9 +271,9 @@ router.put('/allocate/:id', async (req, res) => {
 });
 
 // ==========================================
-// ⚡ TECHNICIAN PORTAL UPDATE ROUTE
+// ⚡ TECHNICIAN PORTAL UPDATE ROUTE (WARNING FIXED)
 // ==========================================
-router.put('/portal-update/:id', async (req, res) => {
+router.put('/portal-update/:id', protect, authorize('technician', 'admin'), async (req, res) => {
     try {
         const bookingId = req.params.id;
         const { status, beforeImage, afterImage, spareParts, totalAmount } = req.body;
@@ -204,8 +288,9 @@ router.put('/portal-update/:id', async (req, res) => {
         const updated = await Booking.findByIdAndUpdate(
             bookingId, 
             { $set: updateFields }, 
-            { returnDocument: 'after' }
+            { returnDocument: 'after' } // ⚡ Fixed Mongoose Deprecation Warning
         );
+
         res.status(200).json(updated);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -213,15 +298,16 @@ router.put('/portal-update/:id', async (req, res) => {
 });
 
 // ==========================================
-// ❌ CANCEL / REJECT JOB ROUTE
+// ❌ CANCEL / REJECT JOB ROUTE (WARNING FIXED)
 // ==========================================
-router.put('/cancel-job/:id', async (req, res) => {
+router.put('/cancel-job/:id', protect, async (req, res) => {
     try {
         const updated = await Booking.findByIdAndUpdate(
             req.params.id, 
             { status: 'Pending', assignedTechnician: null }, 
-            { returnDocument: 'after' }
+            { returnDocument: 'after' } // ⚡ Fixed Mongoose Deprecation Warning
         );
+
         if (!updated) return res.status(404).json({ message: "Job record not found!" });
         res.status(200).json(updated);
     } catch (error) {
@@ -230,7 +316,7 @@ router.put('/cancel-job/:id', async (req, res) => {
 });
 
 // ==========================================
-// ⭐ SUBMIT CUSTOMER RATING & REVIEW ROUTE
+// ⭐ SUBMIT CUSTOMER RATING & REVIEW ROUTE (WARNING FIXED)
 // ==========================================
 router.put('/rate-service/:id', async (req, res) => {
     try {
@@ -242,14 +328,13 @@ router.put('/rate-service/:id', async (req, res) => {
         const updatedBooking = await Booking.findByIdAndUpdate(
             req.params.id,
             { $set: { rating: Number(rating), review: review || '', isRated: true } },
-            { returnDocument: 'after' }
+            { returnDocument: 'after' } // ⚡ Fixed Mongoose Deprecation Warning
         );
 
         if (!updatedBooking) {
             return res.status(404).json({ message: "Booking record not found!" });
         }
 
-        // 📊 SAFE AUTO-RECALCULATE TECHNICIAN'S OVERALL RATING
         try {
             if (updatedBooking.assignedTechnician) {
                 const techId = updatedBooking.assignedTechnician._id || updatedBooking.assignedTechnician;
@@ -263,8 +348,10 @@ router.put('/rate-service/:id', async (req, res) => {
                     const totalScore = ratedBookings.reduce((sum, item) => sum + Number(item.rating || 0), 0);
                     const avgRating = Number((totalScore / ratedBookings.length).toFixed(1));
 
-                    await User.findByIdAndUpdate(techId, { rating: avgRating }).catch(() => {});
-                    await Technician.findByIdAndUpdate(techId, { rating: avgRating }).catch(() => {});
+                    await Promise.all([
+                        User.findByIdAndUpdate(techId, { rating: avgRating }),
+                        Technician.findByIdAndUpdate(techId, { rating: avgRating })
+                    ]);
                 }
             }
         } catch (techErr) {

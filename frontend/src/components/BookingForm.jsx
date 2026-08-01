@@ -12,12 +12,43 @@ function BookingForm({ currentUser }) {
     bookingDate: new Date().toISOString().split('T')[0],
     bookingTime: 'Morning Slot (9 AM - 12 PM)',
     notes: '',
-    applianceImage: ''
+    applianceImage: '',
+    coordinates: ''
   });
 
+  const [mapCenter, setMapCenter] = useState("Rander, Surat");
+  const [geoLoading, setGeoLoading] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [statusMsg, setStatusMsg] = useState({ type: '', text: '' });
+
+  // 📍 GPS LOCATION FETCH LOGIC FOR STANDALONE FORM
+  const handleFetchLocation = () => {
+    if (navigator.geolocation) {
+      setGeoLoading(true);
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setMapCenter(`${latitude},${longitude}`);
+          const googleMapsLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
+          
+          setFormData(prev => ({
+            ...prev,
+            coordinates: googleMapsLink,
+            notes: prev.notes ? `${prev.notes} | GPS: ${googleMapsLink}` : `GPS Pin: ${googleMapsLink}`
+          }));
+          setGeoLoading(false);
+        },
+        (error) => {
+          alert("Location access denied. Please type your full address manually.");
+          setGeoLoading(false);
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    } else {
+      alert("Your browser does not support live location pinning.");
+    }
+  };
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
@@ -60,7 +91,6 @@ function BookingForm({ currentUser }) {
 
       const res = await axios.post(`${API_BASE}/book`, payload);
       
-      // 🟢 PHONE AUTO-MEMORY: Save phone to localStorage so Tracker loads it automatically!
       if (formData.phone) {
         localStorage.setItem('lastBookingPhone', formData.phone.trim());
       }
@@ -75,7 +105,8 @@ function BookingForm({ currentUser }) {
         bookingDate: new Date().toISOString().split('T')[0],
         bookingTime: 'Morning Slot (9 AM - 12 PM)',
         notes: '',
-        applianceImage: ''
+        applianceImage: '',
+        coordinates: ''
       });
     } catch (err) {
       setStatusMsg({
@@ -120,7 +151,7 @@ function BookingForm({ currentUser }) {
                   <option value="AC Repair & Service">AC Repair & Service</option>
                   <option value="Refrigerator Repair">Refrigerator Repair</option>
                   <option value="Washing Machine Repair">Washing Machine Repair</option>
-                  <option value="RO Water Purifier">RO Water Purifier Service</option>
+                  <option value="RO Water Purifier Service">RO Water Purifier Service</option>
                   <option value="Electrical Services">Electrical Services</option>
                   <option value="Plumbing Services">Plumbing Services</option>
                 </select>
@@ -143,6 +174,32 @@ function BookingForm({ currentUser }) {
               <div className="col-12">
                 <label className="small fw-semibold text-muted mb-1">Full Service Address *</label>
                 <input type="text" name="address" className="form-control rounded-3" value={formData.address} onChange={handleInputChange} required placeholder="House No, Area, City" />
+              </div>
+
+              {/* 🗺️ GPS PIN DROP & MAP INTEGRATION IN BOOKING FORM */}
+              <div className="col-12">
+                <button 
+                  type="button" 
+                  className="btn btn-warning text-white fw-bold w-100 rounded-3 mb-2"
+                  onClick={handleFetchLocation}
+                >
+                  📍 {geoLoading ? 'Fetching GPS Satellite...' : 'Drop My Live Location Pin'}
+                </button>
+
+                <div className="border rounded-3 overflow-hidden">
+                  <div className="bg-light p-2 small fw-bold text-muted">
+                    🗺️ Map Target View: {mapCenter}
+                  </div>
+                  <iframe 
+                    title="Fixora Location Map"
+                    src={`https://maps.google.com/maps?q=${encodeURIComponent(mapCenter)}&t=&z=16&ie=UTF8&iwloc=&output=embed`} 
+                    width="100%" 
+                    height="160" 
+                    style={{ border: 0, display: 'block' }} 
+                    allowFullScreen="" 
+                    loading="lazy"
+                  />
+                </div>
               </div>
 
               <div className="col-md-6">

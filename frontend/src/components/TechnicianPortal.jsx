@@ -14,14 +14,35 @@ const TechnicianPortal = ({ onClose }) => {
     const [activeJobModal, setActiveJobModal] = useState(null);
     const [beforeImg, setBeforeImg] = useState('');
     const [afterImg, setAfterImg] = useState('');
-    // ⚙️ Dynamic Parts State with Name, Quantity & Price (Set by Technician)
-    const [parts, setParts] = useState([{ name: '', qty: 1, price: 0 }]);
+    
+    // ⚙️ Dynamic Parts State with Name, Quantity & Price (EMPTY STRING FOR PIC 3 FIX)
+    const [parts, setParts] = useState([{ name: '', qty: 1, price: '' }]);
     const [uploading, setUploading] = useState(false);
     const [saving, setSaving] = useState(false);
 
-    // 👤 Get current logged-in user from localStorage
     const savedUser = localStorage.getItem('user');
     const currentUser = savedUser ? JSON.parse(savedUser) : null;
+
+    const getAuthToken = () => {
+        const directToken = localStorage.getItem('token') || localStorage.getItem('userToken');
+        if (directToken) return directToken;
+
+        try {
+            const userObj = JSON.parse(localStorage.getItem('user') || localStorage.getItem('userInfo') || '{}');
+            return userObj.token || '';
+        } catch {
+            return '';
+        }
+    };
+
+    const getAuthHeader = () => {
+        const token = getAuthToken();
+        return {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        };
+    };
 
     useEffect(() => {
         const handleEsc = (e) => {
@@ -39,7 +60,7 @@ const TechnicianPortal = ({ onClose }) => {
 
         const fetchTechDuties = async () => {
             try {
-                const response = await axios.get(API_BASE);
+                const response = await axios.get(API_BASE, getAuthHeader());
                 
                 const currentUserId = String(currentUser._id || currentUser.id || '');
                 const currentUserEmail = (currentUser.email || '').toLowerCase().trim();
@@ -97,7 +118,11 @@ const TechnicianPortal = ({ onClose }) => {
 
     const handleAcceptJob = async (jobId) => {
         try {
-            await axios.put(`${API_BASE}/portal-update/${jobId}`, { status: 'Accepted' });
+            await axios.put(
+                `${API_BASE}/portal-update/${jobId}`, 
+                { status: 'Accepted' }, 
+                getAuthHeader()
+            );
             setActionMessage('🤝 Job Accepted!');
             setRefreshTrigger(prev => prev + 1);
             setTimeout(() => setActionMessage(''), 3000);
@@ -109,7 +134,11 @@ const TechnicianPortal = ({ onClose }) => {
     const handleCancelJob = async (jobId) => {
         if (window.confirm("Kya aap ye job reject karke Admin ko waapas bhejna chahte ho?")) {
             try {
-                await axios.put(`${API_BASE}/cancel-job/${jobId}`);
+                await axios.put(
+                    `${API_BASE}/cancel-job/${jobId}`, 
+                    {}, 
+                    getAuthHeader()
+                );
                 setActionMessage('❌ Job Rejected! Sent back to Admin.');
                 setRefreshTrigger(prev => prev + 1);
                 setTimeout(() => setActionMessage(''), 3000);
@@ -119,7 +148,6 @@ const TechnicianPortal = ({ onClose }) => {
         }
     };
 
-    // 📸 Upload Image to Cloudinary
     const handleImageUpload = async (e, type) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -129,9 +157,11 @@ const TechnicianPortal = ({ onClose }) => {
         reader.readAsDataURL(file);
         reader.onloadend = async () => {
             try {
-                const res = await axios.post(`${API_BASE}/upload-image`, {
-                    imageBase64: reader.result
-                });
+                const res = await axios.post(
+                    `${API_BASE}/upload-image`, 
+                    { imageBase64: reader.result },
+                    getAuthHeader()
+                );
                 if (type === 'before') setBeforeImg(res.data.url);
                 if (type === 'after') setAfterImg(res.data.url);
             } catch (err) {
@@ -142,33 +172,31 @@ const TechnicianPortal = ({ onClose }) => {
         };
     };
 
-    // ➕ Add New Spare Part Row
     const handleAddPart = () => {
-        setParts([...parts, { name: '', qty: 1, price: 0 }]);
+        setParts([...parts, { name: '', qty: 1, price: '' }]);
     };
 
-    // ❌ Remove Spare Part Row
     const handleRemovePart = (index) => {
         setParts(parts.filter((_, idx) => idx !== index));
     };
 
-    // ✏️ Handle Spare Part Field Change
+    // 🔧 FIX FOR PIC 3: BACKSPACE ERASES '0' CLEANLY WITHOUT BUGS
     const handlePartChange = (index, field, value) => {
         const updated = [...parts];
-        if (field === 'price' || field === 'qty') {
-            updated[index][field] = Number(value) >= 0 ? Number(value) : 0;
+        if (field === 'price') {
+            updated[index][field] = value === '' ? '' : Math.max(0, Number(value));
+        } else if (field === 'qty') {
+            updated[index][field] = value === '' ? '' : Math.max(1, Number(value));
         } else {
             updated[index][field] = value;
         }
         setParts(updated);
     };
 
-    // 💾 Total Bill Calculation: (Qty * Price) + Base Service Fee (₹350)
     const calculateTotalPartsCost = () => {
         return parts.reduce((acc, curr) => acc + ((Number(curr.price) || 0) * (Number(curr.qty) || 1)), 0);
     };
 
-    // 💾 Submit Work Details
     const handleCompleteJobSubmit = async (e) => {
         e.preventDefault();
         if (!activeJobModal) return;
@@ -178,28 +206,31 @@ const TechnicianPortal = ({ onClose }) => {
         const baseServiceFee = 350;
         const finalAmount = totalPartsCost + baseServiceFee;
 
-        // Clean parts list
         const formattedParts = parts
             .filter(p => p.name.trim() !== '')
             .map(p => ({
                 name: `${p.name} (Qty: ${p.qty || 1})`,
-                price: Number(p.price) * Number(p.qty || 1)
+                price: Number(p.price || 0) * Number(p.qty || 1)
             }));
 
         try {
-            await axios.put(`${API_BASE}/portal-update/${activeJobModal._id}`, {
-                status: 'Completed',
-                beforeImage: beforeImg,
-                afterImage: afterImg,
-                spareParts: formattedParts,
-                totalAmount: finalAmount
-            });
+            await axios.put(
+                `${API_BASE}/portal-update/${activeJobModal._id}`, 
+                {
+                    status: 'Completed',
+                    beforeImage: beforeImg,
+                    afterImage: afterImg,
+                    spareParts: formattedParts,
+                    totalAmount: finalAmount
+                },
+                getAuthHeader()
+            );
 
             setActionMessage('🎉 Job Successfully Completed & Billed!');
             setActiveJobModal(null);
             setBeforeImg('');
             setAfterImg('');
-            setParts([{ name: '', qty: 1, price: 0 }]);
+            setParts([{ name: '', qty: 1, price: '' }]);
             setRefreshTrigger(prev => prev + 1);
             setTimeout(() => setActionMessage(''), 3000);
         } catch (error) {
@@ -331,7 +362,7 @@ const TechnicianPortal = ({ onClose }) => {
                     </>
                 )}
 
-                {/* 🛠️ WORK COMPLETION MODAL */}
+                {/* WORK COMPLETION MODAL */}
                 {activeJobModal && (
                     <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10000, padding: '15px' }}>
                         <div style={{ backgroundColor: '#ffffff', width: '100%', maxWidth: '650px', borderRadius: '16px', padding: '24px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)' }}>
@@ -345,7 +376,6 @@ const TechnicianPortal = ({ onClose }) => {
 
                             <form onSubmit={handleCompleteJobSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                                 
-                                {/* BEFORE REPAIR PHOTO */}
                                 <div>
                                     <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#334155', marginBottom: '4px' }}>
                                         📷 Upload Before Repair Photo *
@@ -354,7 +384,6 @@ const TechnicianPortal = ({ onClose }) => {
                                     {beforeImg && <small style={{ color: '#16a34a', fontWeight: 'bold', display: 'block', marginTop: '2px' }}>✅ Before photo uploaded!</small>}
                                 </div>
 
-                                {/* AFTER REPAIR PHOTO */}
                                 <div>
                                     <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#334155', marginBottom: '4px' }}>
                                         📸 Upload After Repair Photo *
@@ -363,7 +392,7 @@ const TechnicianPortal = ({ onClose }) => {
                                     {afterImg && <small style={{ color: '#16a34a', fontWeight: 'bold', display: 'block', marginTop: '2px' }}>✅ After photo uploaded!</small>}
                                 </div>
 
-                                {/* ⚙️ SPARE PARTS WITH QUANTITY & TECHNICIAN CUSTOM PRICE */}
+                                {/* SPARE PARTS WITH CLEAN TYPING VALUE FIX */}
                                 <div>
                                     <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#334155', marginBottom: '6px' }}>
                                         ⚙️ Add Spare Parts Installed (Set Name, Quantity & Price):
@@ -385,6 +414,7 @@ const TechnicianPortal = ({ onClose }) => {
                                                 onChange={(e) => handlePartChange(idx, 'qty', e.target.value)}
                                                 style={{ width: '60px', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
                                             />
+                                            {/* PRICE INPUT (0 ERASE BUG FIXED) */}
                                             <input
                                                 type="number"
                                                 placeholder="Price/Part (₹)"
@@ -405,7 +435,6 @@ const TechnicianPortal = ({ onClose }) => {
                                     </button>
                                 </div>
 
-                                {/* AUTOMATED BILL SUMMARY */}
                                 <div style={{ backgroundColor: '#f8fafc', padding: '12px', borderRadius: '8px', fontSize: '13px', color: '#334155', border: '1px solid #e2e8f0' }}>
                                     <div>Visiting & Repair Charge: <b>₹350</b></div>
                                     <div>Spare Parts Total: <b>₹{calculateTotalPartsCost()}</b></div>
@@ -434,4 +463,4 @@ const TechnicianPortal = ({ onClose }) => {
     );
 };
 
-export default TechnicianPortal;    
+export default TechnicianPortal;
