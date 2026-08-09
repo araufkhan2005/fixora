@@ -170,10 +170,18 @@ const ServicesGrid = () => {
         }, 1000);
     };
 
+    /* 🔍 SMART CATEGORY FILTER LOGIC (Supports specialty, category, serviceCategory) */
     const getTechsForCategory = (keywords) => {
         return technicians.filter(tech => {
-            const specialty = (tech.specialty || '').toLowerCase();
-            return keywords.some(key => specialty.includes(key));
+            const catString = [
+                tech.specialty,
+                tech.category,
+                tech.serviceCategory,
+                tech.service,
+                Array.isArray(tech.services) ? tech.services.join(' ') : tech.services
+            ].filter(Boolean).join(' ').toLowerCase();
+
+            return keywords.some(key => catString.includes(key.toLowerCase()));
         });
     };
 
@@ -224,6 +232,8 @@ const ServicesGrid = () => {
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(270px, 1fr))', gap: '20px' }}>
                                     {categoryTechs.map((tech) => {
                                         const dynRating = calculateDynamicRating(tech);
+                                        const techSpecialty = tech.specialty || tech.category || tech.serviceCategory || tech.service || 'Verified Partner';
+                                        
                                         return (
                                             <div key={tech._id} style={{ backgroundColor: '#fff', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', border: tech.subscriptionPlan === 'Platinum' ? '2px solid #fbbf24' : '1px solid #e5e7eb', position: 'relative', display: 'flex', flexDirection: 'column' }}>
                                                 
@@ -238,7 +248,7 @@ const ServicesGrid = () => {
                                                 
                                                 <div style={{ padding: '15px', flexGrow: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                                     <h4 style={{ margin: 0, color: '#1f2937', fontSize: '18px' }}>{tech.name}</h4>
-                                                    <p style={{ margin: 0, color: '#2563eb', fontWeight: '600', fontSize: '13px' }}>{tech.specialty}</p>
+                                                    <p style={{ margin: 0, color: '#2563eb', fontWeight: '600', fontSize: '13px' }}>{techSpecialty}</p>
                                                     
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#d97706', fontWeight: 'bold', fontSize: '14px' }}>
                                                         🌟 {dynRating} / 5.0
@@ -246,7 +256,7 @@ const ServicesGrid = () => {
 
                                                     <div style={{ borderTop: '1px solid #f3f4f6', marginTop: '10px', paddingTop: '10px' }}>
                                                         <button 
-                                                            onClick={() => handleBookClick(tech._id, tech.name, tech.specialty)}
+                                                            onClick={() => handleBookClick(tech._id, tech.name, techSpecialty)}
                                                             onMouseEnter={() => setHoveredTechId(tech._id)}
                                                             onMouseLeave={() => setHoveredTechId(null)}
                                                             style={{ 
