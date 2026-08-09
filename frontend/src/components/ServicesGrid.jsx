@@ -170,7 +170,7 @@ const ServicesGrid = () => {
         }, 1000);
     };
 
-    /* 🔍 SMART CATEGORY FILTER LOGIC (Supports specialty, category, serviceCategory) */
+    /* 🔍 EXACT WORD BOUNDARY CATEGORY FILTER */
     const getTechsForCategory = (keywords) => {
         return technicians.filter(tech => {
             const catString = [
@@ -181,8 +181,16 @@ const ServicesGrid = () => {
                 Array.isArray(tech.services) ? tech.services.join(' ') : tech.services
             ].filter(Boolean).join(' ').toLowerCase();
 
-            return keywords.some(key => catString.includes(key.toLowerCase()));
+            return keywords.some(key => {
+                const regex = new RegExp(`\\b${key.toLowerCase()}\\b`, 'i');
+                return regex.test(catString);
+            });
         });
+    };
+
+    /* 🖼️ DIRECT DATABASE PHOTO & BASE64 HELPER */
+    const getTechnicianImage = (tech) => {
+        return tech.photo || tech.image || '';
     };
 
     if (loading) return <h3 style={{ textAlign: 'center', marginTop: '50px' }}>Loading Premium Experts...</h3>;
@@ -244,7 +252,11 @@ const ServicesGrid = () => {
                                                     <span style={{ position: 'absolute', top: '10px', right: '10px', backgroundColor: '#e5e7eb', color: '#374151', padding: '4px 8px', borderRadius: '20px', fontSize: '11px', fontWeight: 'bold', zIndex: 1 }}>Verified Pro</span>
                                                 )}
 
-                                                <img src={tech.photo || tech.image || 'https://via.placeholder.com/300x200?text=No+Image'} alt={tech.name} style={{ width: '100%', height: '180px', objectFit: 'cover' }} />
+                                                <img 
+                                                    src={getTechnicianImage(tech)} 
+                                                    alt={tech.name} 
+                                                    style={{ width: '100%', height: '180px', objectFit: 'cover' }} 
+                                                />
                                                 
                                                 <div style={{ padding: '15px', flexGrow: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                                     <h4 style={{ margin: 0, color: '#1f2937', fontSize: '18px' }}>{tech.name}</h4>

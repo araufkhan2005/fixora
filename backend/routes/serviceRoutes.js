@@ -9,102 +9,8 @@ const cloudinary = require('../config/cloudinary');
 // 🛡️ Auth Middlewares Import
 const { protect, authorize } = require('../middleware/authMiddleware');
 
-// ⚡ DEFAULT 18 TECHNICIANS WITH WORKING HD PROFILE IMAGES
-const INITIAL_TECHNICIANS = [
-    { 
-        name: 'daksh123', email: 'daksh123@fixora.com', phone: '9876543210', role: 'technician', specialty: 'Plumbing Expert', subscriptionPlan: 'Platinum', planPrice: 51563, rating: 4.5,
-        photo: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=500&auto=format&fit=crop&q=80',
-        image: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=500&auto=format&fit=crop&q=80'
-    },
-    { 
-        name: 'Tejas', email: 'tejas@fixora.com', phone: '9876543211', role: 'technician', specialty: 'Fridge expert', subscriptionPlan: 'Platinum', planPrice: 5800, rating: 4.5,
-        photo: 'https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?w=500&auto=format&fit=crop&q=80',
-        image: 'https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?w=500&auto=format&fit=crop&q=80'
-    },
-    { 
-        name: 'Aarav', email: 'aarav@fixora.com', phone: '9876543212', role: 'technician', specialty: 'Electrical Services', subscriptionPlan: 'Platinum', planPrice: 5500, rating: 4.5,
-        photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80',
-        image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80'
-    },
-    { 
-        name: 'Vedanth', email: 'vedanth@fixora.com', phone: '9876543213', role: 'technician', specialty: 'Washing Machine Expert', subscriptionPlan: 'Platinum', planPrice: 5500, rating: 4.5,
-        photo: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=500&auto=format&fit=crop&q=80',
-        image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=500&auto=format&fit=crop&q=80'
-    },
-    { 
-        name: 'Vivaan', email: 'vivaan@fixora.com', phone: '9876543214', role: 'technician', specialty: 'RO', subscriptionPlan: 'Platinum', planPrice: 5199, rating: 4.5,
-        photo: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=500&auto=format&fit=crop&q=80',
-        image: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=500&auto=format&fit=crop&q=80'
-    },
-    { 
-        name: 'Ansh', email: 'ansh@fixora.com', phone: '9876543215', role: 'technician', specialty: 'AC expert', subscriptionPlan: 'Platinum', planPrice: 5050, rating: 4.5,
-        photo: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=500&auto=format&fit=crop&q=80',
-        image: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=500&auto=format&fit=crop&q=80'
-    },
-    { 
-        name: 'Gautam', email: 'gautam@fixora.com', phone: '9876543216', role: 'technician', specialty: 'Fridge expert', subscriptionPlan: 'Gold', planPrice: 4591, rating: 4.5,
-        photo: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=500&auto=format&fit=crop&q=80',
-        image: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=500&auto=format&fit=crop&q=80'
-    },
-    { 
-        name: 'Reyansh', email: 'reyansh@fixora.com', phone: '9876543217', role: 'technician', specialty: 'Electrical Services', subscriptionPlan: 'Gold', planPrice: 4500, rating: 4.5,
-        photo: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&auto=format&fit=crop&q=80',
-        image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&auto=format&fit=crop&q=80'
-    },
-    { 
-        name: 'Kabir', email: 'kabir@fixora.com', phone: '9876543218', role: 'technician', specialty: 'Washing Machine Expert', subscriptionPlan: 'Gold', planPrice: 4100, rating: 4.5,
-        photo: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=500&auto=format&fit=crop&q=80',
-        image: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=500&auto=format&fit=crop&q=80'
-    },
-    { 
-        name: 'Arjun', email: 'arjun@fixora.com', phone: '9876543219', role: 'technician', specialty: 'RO', subscriptionPlan: 'Gold', planPrice: 3503, rating: 4.5,
-        photo: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=500&auto=format&fit=crop&q=80',
-        image: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=500&auto=format&fit=crop&q=80'
-    },
-    { 
-        name: 'Manish', email: 'manish@fixora.com', phone: '9876543220', role: 'technician', specialty: 'AC expert', subscriptionPlan: 'Gold', planPrice: 3200, rating: 4.5,
-        photo: 'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?w=500&auto=format&fit=crop&q=80',
-        image: 'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?w=500&auto=format&fit=crop&q=80'
-    },
-    { 
-        name: 'Zayan', email: 'zayan@fixora.com', phone: '9876543221', role: 'technician', specialty: 'Plumbing Expert', subscriptionPlan: 'Gold', planPrice: 3000, rating: 4.5,
-        photo: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=500&auto=format&fit=crop&q=80',
-        image: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=500&auto=format&fit=crop&q=80'
-    },
-    { 
-        name: 'Chandan', email: 'chandan@fixora.com', phone: '9876543222', role: 'technician', specialty: 'AC expert', subscriptionPlan: 'Silver', planPrice: 2800, rating: 4.5,
-        photo: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=500&auto=format&fit=crop&q=80',
-        image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=500&auto=format&fit=crop&q=80'
-    },
-    { 
-        name: 'Rohan', email: 'rohan@fixora.com', phone: '9876543223', role: 'technician', specialty: 'Fridge expert', subscriptionPlan: 'Silver', planPrice: 2502, rating: 4.5,
-        photo: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=500&auto=format&fit=crop&q=80',
-        image: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=500&auto=format&fit=crop&q=80'
-    },
-    { 
-        name: 'Ayan', email: 'ayan@fixora.com', phone: '9876543224', role: 'technician', specialty: 'Electrical Services', subscriptionPlan: 'Silver', planPrice: 2000, rating: 4.5,
-        photo: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=500&auto=format&fit=crop&q=80',
-        image: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=500&auto=format&fit=crop&q=80'
-    },
-    { 
-        name: 'Shaurya', email: 'shaurya@fixora.com', phone: '9876543225', role: 'technician', specialty: 'RO', subscriptionPlan: 'Basic', planPrice: 1400, rating: 4.5,
-        photo: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=500&auto=format&fit=crop&q=80',
-        image: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=500&auto=format&fit=crop&q=80'
-    },
-    { 
-        name: 'Nikhil', email: 'nikhil@fixora.com', phone: '9876543226', role: 'technician', specialty: 'Plumbing Expert', subscriptionPlan: 'Basic', planPrice: 1000, rating: 4.5,
-        photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80',
-        image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80'
-    },
-    { 
-        name: 'Madhav', email: 'madhav@fixora.com', phone: '9876543227', role: 'technician', specialty: 'Washing Machine Expert', subscriptionPlan: 'Basic', planPrice: 997, rating: 4.5,
-        photo: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=500&auto=format&fit=crop&q=80',
-        image: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=500&auto=format&fit=crop&q=80'
-    }
-];
-
-// Helper Function: Fetch or Auto-Seed Technicians
-const getOrSeedTechnicians = async () => {
+// 📥 Helper Function: Direct Database Fetch Logic (No Default Dummy Seed)
+const getTechniciansFromDB = async () => {
     let technicians = await Technician.find().sort({ planPrice: -1, rating: -1 });
 
     if (!technicians || technicians.length === 0) {
@@ -113,23 +19,7 @@ const getOrSeedTechnicians = async () => {
             .select('-password');
     }
 
-    // Auto-Seed if DB is empty
-    if (!technicians || technicians.length === 0) {
-        await Technician.insertMany(INITIAL_TECHNICIANS);
-        technicians = await Technician.find().sort({ planPrice: -1, rating: -1 });
-    } else {
-        // Fallback for existing records without photo
-        technicians = technicians.map(tech => {
-            const techObj = tech.toObject ? tech.toObject() : tech;
-            if (!techObj.photo && !techObj.image) {
-                techObj.photo = 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=500&auto=format&fit=crop&q=80';
-                techObj.image = techObj.photo;
-            }
-            return techObj;
-        });
-    }
-
-    return technicians;
+    return technicians || [];
 };
 
 // ==========================================
@@ -212,7 +102,7 @@ router.get('/customer-bookings/:identifier', async (req, res) => {
 // ==========================================
 router.get('/homepage-techs', async (req, res) => {
     try {
-        const technicians = await getOrSeedTechnicians();
+        const technicians = await getTechniciansFromDB();
         res.status(200).json(technicians);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -221,7 +111,7 @@ router.get('/homepage-techs', async (req, res) => {
 
 router.get('/get-technicians', async (req, res) => {
     try {
-        const technicians = await getOrSeedTechnicians();
+        const technicians = await getTechniciansFromDB();
         res.status(200).json(technicians);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -248,7 +138,7 @@ router.get('/', async (req, res) => {
 });
 
 // ==========================================
-// ⚙️ ADD TECHNICIAN (AUTO RATING & PLAN BY PRICE)
+// ⚙️ ADD TECHNICIAN
 // ==========================================
 router.post('/add-technician', protect, authorize('admin'), async (req, res) => {
     try {
@@ -260,7 +150,7 @@ router.post('/add-technician', protect, authorize('admin'), async (req, res) => 
         const userExists = await User.findOne({ email });
         if (userExists) return res.status(400).json({ message: 'Is email se pehle se user registered hai!' });
 
-        const photoUrl = image || 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=500&auto=format&fit=crop&q=80';
+        const photoUrl = image || '';
         const numericPlanPrice = Number(planPrice) || 0;
 
         let calculatedRating = 4.3;
