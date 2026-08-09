@@ -4,6 +4,10 @@ const Footer = () => {
     // 🟠 HOVER MATRIX: Sabhi links ke unique hovers ko handle karne ke liye
     const [hoveredId, setHoveredId] = useState(null);
 
+    // 🔒 MODAL STATES FOR LEGAL & POLICIES
+    const [showTerms, setShowTerms] = useState(false);
+    const [showPrivacy, setShowPrivacy] = useState(false);
+
     // Smooth scroll navigation trigger logic
     const handleScroll = (e, targetId) => {
         e.preventDefault();
@@ -60,8 +64,28 @@ const Footer = () => {
                         <a href="#" onClick={(e) => handleScroll(e, 'top')} onMouseEnter={() => setHoveredId('q1')} onMouseLeave={() => setHoveredId(null)} style={linkStyle('q1')}>Home Base</a>
                         <a href="#process-section" onClick={(e) => handleScroll(e, 'process-section')} onMouseEnter={() => setHoveredId('q2')} onMouseLeave={() => setHoveredId(null)} style={linkStyle('q2')}>How It Works</a>
                         <a href="#booking-suite-section" onClick={(e) => handleScroll(e, 'booking-suite-section')} onMouseEnter={() => setHoveredId('q3')} onMouseLeave={() => setHoveredId(null)} style={linkStyle('q3')}>Book Form</a>
-                        <a href="#" onMouseEnter={() => setHoveredId('q4')} onMouseLeave={() => setHoveredId(null)} style={linkStyle('q4')}>Privacy Policy</a>
-                        <a href="#" onMouseEnter={() => setHoveredId('q5')} onMouseLeave={() => setHoveredId(null)} style={linkStyle('q5')}>Terms & Conditions</a>
+                        
+                        {/* 🔒 PRIVACY POLICY TRIGGER */}
+                        <a 
+                            href="#privacy" 
+                            onClick={(e) => { e.preventDefault(); setShowPrivacy(true); }} 
+                            onMouseEnter={() => setHoveredId('q4')} 
+                            onMouseLeave={() => setHoveredId(null)} 
+                            style={linkStyle('q4')}
+                        >
+                            Privacy Policy
+                        </a>
+
+                        {/* 📜 TERMS & CONDITIONS TRIGGER */}
+                        <a 
+                            href="#terms" 
+                            onClick={(e) => { e.preventDefault(); setShowTerms(true); }} 
+                            onMouseEnter={() => setHoveredId('q5')} 
+                            onMouseLeave={() => setHoveredId(null)} 
+                            style={linkStyle('q5')}
+                        >
+                            Terms & Conditions
+                        </a>
                     </div>
 
                     {/* COL 4: OPERATIONAL INFORMATION NODES */}
@@ -84,12 +108,54 @@ const Footer = () => {
                 </div>
 
                 {/* 🔒 BOTTOM SYSTEM FOOTNOTE ROW */}
-                <div style={{ borderTop: '1px solid #e5e7eb', padding: '20px 0', display: 'flex', justifycontent: 'space-between', flexWrap: 'wrap', gap: '10px', fontSize: '12.5px', color: '#9ca3af' }}>
+                <div style={{ borderTop: '1px solid #e5e7eb', padding: '20px 0', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', fontSize: '12.5px', color: '#9ca3af' }}>
                     <div>© 2026 Fixora Inc. All Operational Rights Reserved.</div>
                     <div style={{ fontWeight: '500', color: '#6b7280' }}>Designed for Secure Multi-Service Deployments.</div>
                 </div>
 
             </div>
+
+            {/* 📜 TERMS & CONDITIONS MODAL */}
+            {showTerms && (
+                <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 99999, padding: '20px' }}>
+                    <div style={{ backgroundColor: '#ffffff', padding: '30px', borderRadius: '16px', width: '100%', maxWidth: '550px', maxHeight: '80vh', overflowY: 'auto', boxShadow: '0 10px 30px rgba(0,0,0,0.3)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e5e7eb', paddingBottom: '10px', marginBottom: '15px' }}>
+                            <h3 style={{ margin: 0, color: '#111827', fontSize: '18px', fontWeight: 'bold' }}>📜 Terms & Conditions</h3>
+                            <button onClick={() => setShowTerms(false)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#6b7280' }}>✕</button>
+                        </div>
+                        <div style={{ color: '#4b5563', fontSize: '13.5px', lineHeight: '1.6', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            <p style={{ margin: 0 }}><b>1. Visiting Inspection Charge:</b> Fixora platform par standard doorstep inspection fee fixed ₹99 hai. Major repair ya extra spare parts ki costing task se pehle customer confirmation ke saath add hogi.</p>
+                            <p style={{ margin: 0 }}><b>2. 30-Day Service Guarantee:</b> Verified Fixora technicians dwara completed sabhi jobs par 30-Day Warranty milti hai. Same issue aane par re-visit free of charge hoga.</p>
+                            <p style={{ margin: 0 }}><b>3. 3-Stage Photo Audit Verification:</b> Technician ko job completion se pehle 3 mandatory photos (Issue, Before Repair, After Repair) System CDN par upload karni hongi.</p>
+                            <p style={{ margin: 0 }}><b>4. Service Cancellation:</b> Service request ko technician allocation se pehle bina kisi cancellation fee ke cancel kiya ja sakta hai.</p>
+                        </div>
+                        <div style={{ textAlign: 'right', marginTop: '20px', borderTop: '1px solid #e5e7eb', paddingTop: '12px' }}>
+                            <button onClick={() => setShowTerms(false)} style={{ backgroundColor: '#2563eb', color: '#ffffff', border: 'none', padding: '9px 18px', borderRadius: '6px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer' }}>I Understand</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* 🔒 PRIVACY POLICY MODAL */}
+            {showPrivacy && (
+                <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 99999, padding: '20px' }}>
+                    <div style={{ backgroundColor: '#ffffff', padding: '30px', borderRadius: '16px', width: '100%', maxWidth: '550px', maxHeight: '80vh', overflowY: 'auto', boxShadow: '0 10px 30px rgba(0,0,0,0.3)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e5e7eb', paddingBottom: '10px', marginBottom: '15px' }}>
+                            <h3 style={{ margin: 0, color: '#111827', fontSize: '18px', fontWeight: 'bold' }}>🔒 Privacy Policy</h3>
+                            <button onClick={() => setShowPrivacy(false)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#6b7280' }}>✕</button>
+                        </div>
+                        <div style={{ color: '#4b5563', fontSize: '13.5px', lineHeight: '1.6', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            <p style={{ margin: 0 }}><b>1. Customer Data Masking:</b> Aapka phone number aur precise home address encrypted format mein manage hota hai. Customer details kisi third-party advertiser ko share nahi ki jati.</p>
+                            <p style={{ margin: 0 }}><b>2. Live GPS Satellite Pin Drop:</b> Booking modal ke 'Drop My Live Location Pin' se captured coordinates sirf assigned technician ko turn-by-turn navigation redirect dene ke liye use hote hain.</p>
+                            <p style={{ margin: 0 }}><b>3. Photographic Proof Security:</b> Technician dwara upload ki gayi inspection photos sirf Cloudinary CDN Audit trail aur printable invoice verification ke liye store rehti hain.</p>
+                        </div>
+                        <div style={{ textAlign: 'right', marginTop: '20px', borderTop: '1px solid #e5e7eb', paddingTop: '12px' }}>
+                            <button onClick={() => setShowPrivacy(false)} style={{ backgroundColor: '#111827', color: '#ffffff', border: 'none', padding: '9px 18px', borderRadius: '6px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer' }}>Close Policy</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
         </div>
     );
 };

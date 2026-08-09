@@ -24,13 +24,20 @@ function AdminDashboard() {
 
   const BASE_API_URL = "http://127.0.0.1:5000/api/services";
 
+  // 🛡️ FULL-PROOF AUTH TOKEN EXTRACTOR (Fixes "token failed" error)
   const getAuthToken = () => {
-    const directToken = localStorage.getItem('token') || localStorage.getItem('userToken');
+    const directToken = localStorage.getItem('token') || 
+                        localStorage.getItem('adminToken') || 
+                        localStorage.getItem('userToken');
     if (directToken) return directToken;
 
     try {
-      const userObj = JSON.parse(localStorage.getItem('user') || localStorage.getItem('userInfo') || '{}');
-      return userObj.token || '';
+      const userObj = JSON.parse(
+        localStorage.getItem('user') || 
+        localStorage.getItem('userInfo') || 
+        localStorage.getItem('admin') || '{}'
+      );
+      return userObj.token || userObj.jwt || '';
     } catch {
       return '';
     }
@@ -103,6 +110,7 @@ function AdminDashboard() {
     }
   };
 
+  // 🚀 UPDATED ALLOCATE TECHNICIAN WITH ROBUST TOKEN & PAYLOAD SUPPORT
   const allocateTechnician = async (id) => {
     const selectedTechId = selectedTechs[id];
     if (!selectedTechId) {
@@ -110,15 +118,24 @@ function AdminDashboard() {
       return;
     }
 
+    const token = getAuthToken();
+    if (!token) {
+      alert("❌ Authentication Token Missing! Please Logout and Login again as Admin.");
+      return;
+    }
+
     try {
-      const token = getAuthToken();
       const response = await fetch(`${BASE_API_URL}/allocate/${id}`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ technician: selectedTechId, status: "Assigned" })
+        body: JSON.stringify({ 
+          technician: selectedTechId, 
+          technicianId: selectedTechId, 
+          status: "Assigned" 
+        })
       });
 
       if (response.ok) {
@@ -126,7 +143,7 @@ function AdminDashboard() {
         fetchIncomingQueue();
       } else {
         const errData = await response.json();
-        alert(`❌ Allocation failed: ${errData.message || 'Error'}`);
+        alert(`❌ Allocation failed: ${errData.message || errData.error || 'Authorization error'}`);
       }
     } catch (error) {
       alert("❌ Server connection error during allocation.");
@@ -136,8 +153,13 @@ function AdminDashboard() {
   const cancelAllocation = async (id) => {
     if (!window.confirm("Kya aap sach mein is allocation ko cancel karna chahte hain?")) return;
 
+    const token = getAuthToken();
+    if (!token) {
+      alert("❌ Session expired. Please login again.");
+      return;
+    }
+
     try {
-      const token = getAuthToken();
       const response = await fetch(`${BASE_API_URL}/allocate/${id}`, {
         method: 'PUT',
         headers: { 
@@ -159,8 +181,13 @@ function AdminDashboard() {
   const deleteTechnician = async (id, name) => {
     if (!window.confirm(`⚠️ Kya aap sach mein Technician "${name}" ko remove karna chahte hain?`)) return;
 
+    const token = getAuthToken();
+    if (!token) {
+      alert("❌ Session expired. Please login again.");
+      return;
+    }
+
     try {
-      const token = getAuthToken();
       const response = await fetch(`${BASE_API_URL}/delete-technician/${id}`, {
         method: 'DELETE',
         headers: {
@@ -195,8 +222,14 @@ function AdminDashboard() {
     setStatusMessage({ type: '', text: '' });
     setSubmitting(true);
 
+    const token = getAuthToken();
+    if (!token) {
+      setStatusMessage({ type: 'error', text: '❌ Token missing! Please re-login.' });
+      setSubmitting(false);
+      return;
+    }
+
     try {
-      const token = getAuthToken();
       const liveTier = getLiveTierInfo(formData.planPrice);
 
       const payload = {
@@ -260,35 +293,74 @@ function AdminDashboard() {
     <div className="container-fluid px-4 py-4" style={{ marginTop: '30px' }}>
       
       <style>{`
-        @media print {
-          @page {
-            size: A4 portrait;
-            margin: 8mm;
-          }
-          body {
-            visibility: hidden !important;
-            background: #ffffff !important;
-          }
-          #printable-invoice-content, #printable-invoice-content * {
-            visibility: visible !important;
-          }
-          #printable-invoice-content {
-            position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
-            width: 100% !important;
-            margin: 0 !important;
-            padding: 20px !important;
-            border: 1px solid #dee2e6 !important;
-            border-radius: 18px !important;
-            background: #ffffff !important;
-            box-shadow: none !important;
-          }
-          .d-print-none {
-            display: none !important;
-          }
-        }
-      `}</style>
+  @media print {
+    @page {
+      size: A4 portrait;
+      margin: 8mm;
+    }
+
+    /* 1. Reset background and prevent extra blank page overflow */
+    html, body {
+      background: #ffffff !important;
+      color: #000000 !important;
+      height: 100% !important;
+      overflow: hidden !important;
+    }
+
+    /* 2. Hide everything visually */
+    body * {
+      visibility: hidden !important;
+    }
+
+    /* 3. Make ONLY invoice content and its children visible */
+    #printable-invoice-content,
+    #printable-invoice-content * {
+      visibility: visible !important;
+    }
+
+    /* 4. Reset bootstrap modal overlay height to 0 so it doesn't push a 2nd page */
+    .modal {
+      position: absolute !important;
+      left: 0 !important;
+      top: 0 !important;
+      width: 100% !important;
+      height: auto !important;
+      background: transparent !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      overflow: visible !important;
+    }
+
+    .modal-dialog {
+      max-width: 100% !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+
+    /* 5. Pin invoice to top-left of page 1 */
+    #printable-invoice-content {
+      position: absolute !important;
+      left: 0 !important;
+      top: 0 !important;
+      width: 100% !important;
+      max-height: 98vh !important;
+      margin: 0 !important;
+      padding: 15px !important;
+      border: 1px solid #1e293b !important;
+      border-radius: 8px !important;
+      background: #ffffff !important;
+      box-shadow: none !important;
+      page-break-inside: avoid !important;
+      page-break-after: avoid !important;
+    }
+
+    /* 6. Hide action buttons on printed PDF */
+    .d-print-none,
+    #printable-invoice-content .d-print-none {
+      display: none !important;
+    }
+  }
+`}</style>
 
       {/* HEADER SECTION */}
       <div className="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4 flex-wrap gap-2">
@@ -449,7 +521,6 @@ function AdminDashboard() {
             </div>
           )}
 
-          {/* 🏷️ PLAN PRICE TO RATING LEGEND BOX */}
           <div className="bg-light p-3 rounded-3 border mb-3">
             <small className="fw-bold text-dark d-block mb-2">🏷️ Auto-Assigned Plan & Rating Legend:</small>
             <div className="d-flex flex-wrap gap-2 small">
@@ -492,7 +563,6 @@ function AdminDashboard() {
                 <input type="number" name="age" className="form-control form-control-sm rounded-3" value={formData.age} onChange={handleFormChange} placeholder="e.g. 26" />
               </div>
 
-              {/* 💰 PLAN PRICE INPUT FIELD */}
               <div className="col-12 col-md-4">
                 <label className="small fw-bold text-dark mb-1">Plan Price (₹) *</label>
                 <div className="input-group input-group-sm">
@@ -514,7 +584,6 @@ function AdminDashboard() {
                 <input type="file" accept="image/*" className="form-control form-control-sm rounded-3" onChange={handleImageChange} />
               </div>
 
-              {/* 🌟 LIVE PREVIEW BADGE */}
               <div className="col-12 col-md-6 d-flex align-items-center">
                 <div className="p-2 bg-light border rounded-3 w-100 d-flex justify-content-between align-items-center">
                   <span className="small text-muted fw-bold">Calculated Tier Preview:</span>
@@ -564,7 +633,6 @@ function AdminDashboard() {
                         <small className="text-muted d-block">📞 {item.phone}</small>
                         <small className="text-muted text-wrap d-block" style={{ maxWidth: '180px' }}>📍 {item.address}</small>
                         
-                        {/* 📍 GPS LOCATION LINK BUTTON */}
                         {mapUrl && (
                           <a href={mapUrl} target="_blank" rel="noreferrer" className="badge bg-warning text-dark text-decoration-none mt-1 d-inline-block fw-bold">
                             🗺️ Open GPS Map Location
@@ -589,7 +657,6 @@ function AdminDashboard() {
                             👨‍🔧 {item.assignedTechnician?.name || item.technician || 'Assigned'}
                           </span>
                         ) : (
-                          /* DROPDOWN WITH AUTO-SELECTED REQUESTED TECHNICIAN */
                           <select 
                             className="form-select form-select-sm rounded-3 fw-bold border-primary" 
                             value={selectedTechs[item._id] || ''} 

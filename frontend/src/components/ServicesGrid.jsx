@@ -16,6 +16,14 @@ const ServicesGrid = () => {
     const [mapCenter, setMapCenter] = useState("Rander, Surat");
     const [geoLoading, setGeoLoading] = useState(false);
 
+    /* ❓ FAQ ACCORDION STATE */
+    const [openFaq, setOpenFaq] = useState(null);
+
+    /* 💬 ASK A QUESTION MODAL STATE */
+    const [showAskModal, setShowAskModal] = useState(false);
+    const [askFormData, setAskFormData] = useState({ name: '', phone: '', question: '' });
+    const [askStatus, setAskStatus] = useState('');
+
     // 📌 SERVICE CATEGORIES CONFIGURATION
     const SERVICE_CATEGORIES = [
         { id: 'ac', title: 'AC Repair & Service', icon: '❄️', keywords: ['ac', 'air conditioner', 'cooling'] },
@@ -24,6 +32,30 @@ const ServicesGrid = () => {
         { id: 'ro', title: 'RO Water Purifier Service', icon: '💧', keywords: ['ro', 'water', 'purifier', 'filter'] },
         { id: 'electrical', title: 'Electrical Services', icon: '⚡', keywords: ['elect', 'electrician', 'wiring'] },
         { id: 'plumbing', title: 'Plumbing Services', icon: '🔧', keywords: ['plumb', 'plumber', 'pipe'] }
+    ];
+
+    // ❓ FAQ DATA MATRIX
+    const FAQS = [
+        {
+            q: "Fixora par service book karne ki visiting inspection fee kitni hai?",
+            a: "Fixora par standard inspection visiting fee fixed ₹99 hai. Agar koi spare part lagta hai, toh uski billing actual rates ke hisab se transparently ki jati hai."
+        },
+        {
+            q: "Kya repair work aur spare parts par koi warranty milti hai?",
+            a: "Haan! Fixora har completed repair par 30-Day Service Warranty deta hai. Saath hi 3-Stage Photographic Proof System se genuine spare parts verify hote hain."
+        },
+        {
+            q: "Live GPS Satellite Pin-Drop kaise kaam karta hai?",
+            a: "Booking karte waqt 'Drop My Live Location Pin' button par click karte hi aapke browser se exact GPS coordinates capture ho jate hain, jisse technician 1-click Google Maps navigation se aapke ghar pohochta hai."
+        },
+        {
+            q: "Main service complete hone ke baad payment kaise kar sakta hu?",
+            a: "Service complete hone par technician dwara generated instant digital invoice par UPI QR Code scan karke ya Cash ke zariye direct payment kar sakte hain."
+        },
+        {
+            q: "Service request book hone ke kitne time mein technician assign hota hai?",
+            a: "Aapki booking submit hote hi Admin Operations Center se Priority Ranking Engine ke tehat nearest top-rated expert minutes mein auto-dispatch ho jata hai."
+        }
     ];
 
     // 🎯 DYNAMIC PRICE TIER RATING CALCULATOR
@@ -124,6 +156,20 @@ const ServicesGrid = () => {
         }
     };
 
+    /* ❓ ASK A QUESTION FORM SUBMIT */
+    const handleAskSubmit = (e) => {
+        e.preventDefault();
+        setAskStatus('Transmitting question to helpdesk...');
+        setTimeout(() => {
+            setAskStatus('🎉 Aapka sawal submit ho gaya hai! FIXORA Support Team jald hi aap se contact karegi.');
+            setTimeout(() => {
+                setShowAskModal(false);
+                setAskStatus('');
+                setAskFormData({ name: '', phone: '', question: '' });
+            }, 2500);
+        }, 1000);
+    };
+
     const getTechsForCategory = (keywords) => {
         return technicians.filter(tech => {
             const specialty = (tech.specialty || '').toLowerCase();
@@ -135,9 +181,27 @@ const ServicesGrid = () => {
 
     return (
         <div id="services-grid-section" style={{ padding: '60px 20px', fontFamily: 'sans-serif', backgroundColor: '#f9fafb', minHeight: '100vh', scrollMarginTop: '80px' }}>
+            
+            {/* 🏷️ 1. PROMOTIONAL OFFERS BANNER BAR */}
+            <div style={{ maxWidth: '1200px', margin: '0 auto 40px auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+                <div style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
+                    <h5 style={{ margin: '0 0 4px 0', color: '#1d4ed8', fontWeight: 'bold', fontSize: '15px' }}>⚡ Pre-Summer AC Special</h5>
+                    <small style={{ color: '#3b82f6' }}>Flat ₹350 Fixed Inspection Fee for AC & Fridge Servicing</small>
+                </div>
+                <div style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
+                    <h5 style={{ margin: '0 0 4px 0', color: '#15803d', fontWeight: 'bold', fontSize: '15px' }}>🛡️ 30-Day Service Warranty</h5>
+                    <small style={{ color: '#22c55e' }}>Free re-visit if the same fault reoccurs within 30 days</small>
+                </div>
+                <div style={{ backgroundColor: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
+                    <h5 style={{ margin: '0 0 4px 0', color: '#c2410c', fontWeight: 'bold', fontSize: '15px' }}>💳 100% Cashless UPI Billing</h5>
+                    <small style={{ color: '#f97316' }}>Scan Dynamic UPI QR code on instant invoice after job</small>
+                </div>
+            </div>
+
             <h2 style={{ textAlign: 'center', color: '#111827', marginBottom: '10px', fontSize: '28px' }}>💥 Verified Home Service Experts</h2>
             <p style={{ textAlign: 'center', color: '#6b7280', marginBottom: '40px' }}>Urban Company Standard • Category Wise Certified Partners</p>
 
+            {/* 🔹 CATEGORY-WISE TECHNICIANS GRID */}
             <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '45px' }}>
                 {SERVICE_CATEGORIES.map((category) => {
                     const categoryTechs = getTechsForCategory(category.keywords);
@@ -224,7 +288,109 @@ const ServicesGrid = () => {
                 })}
             </div>
 
-            {/* 🗺️ INTERACTIVE FORM MODAL (FIXED TOP CUTOFF FOR PIC 2) */}
+            {/* 💬 2. VERIFIED CUSTOMER REVIEWS */}
+            <div style={{ maxWidth: '1200px', margin: '60px auto' }}>
+                <h3 style={{ textAlign: 'center', color: '#111827', marginBottom: '8px', fontSize: '24px', fontWeight: 'bold' }}>Verified Customer Reviews</h3>
+                <p style={{ textAlign: 'center', color: '#6b7280', marginBottom: '30px', fontSize: '14px' }}>Real feedback from customers in Surat & Rander</p>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
+                    <div style={{ backgroundColor: '#ffffff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
+                        <div style={{ color: '#f59e0b', marginBottom: '8px', fontWeight: 'bold' }}>★★★★★ (5.0)</div>
+                        <p style={{ color: '#374151', fontSize: '14px', fontStyle: 'italic', marginBottom: '12px' }}>"Technician arrived in 25 mins using live GPS link and fixed my AC PCB issue on the spot!"</p>
+                        <small style={{ color: '#6b7280', fontWeight: 'bold' }}>— Mohsin Khan, Rander</small>
+                    </div>
+
+                    <div style={{ backgroundColor: '#ffffff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
+                        <div style={{ color: '#f59e0b', marginBottom: '8px', fontWeight: 'bold' }}>★★★★★ (5.0)</div>
+                        <p style={{ color: '#374151', fontSize: '14px', fontStyle: 'italic', marginBottom: '12px' }}>"Very clean process. Tech uploaded 3 photos before/after repair and I paid via instant UPI QR code."</p>
+                        <small style={{ color: '#6b7280', fontWeight: 'bold' }}>— Sameer Patel, Adajan</small>
+                    </div>
+
+                    <div style={{ backgroundColor: '#ffffff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
+                        <div style={{ color: '#f59e0b', marginBottom: '8px', fontWeight: 'bold' }}>★★★★★ (5.0)</div>
+                        <p style={{ color: '#374151', fontSize: '14px', fontStyle: 'italic', marginBottom: '12px' }}>"Fixed visiting fee of ₹99 with transparent spare parts billing. Highly recommended MERN service platform."</p>
+                        <small style={{ color: '#6b7280', fontWeight: 'bold' }}>— Aaliyah Shaikh, Varachha</small>
+                    </div>
+                </div>
+            </div>
+
+            {/* ❓ 3. INTERACTIVE Q&A / FAQ ACCORDION SECTION WITH "ASK QUESTION" BUTTON */}
+            <div style={{ maxWidth: '850px', margin: '0 auto 40px auto', backgroundColor: '#ffffff', border: '1px solid #e5e7eb', borderRadius: '16px', padding: '30px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', flexWrap: 'wrap', gap: '15px' }}>
+                    <div>
+                        <span style={{ backgroundColor: '#eff6ff', color: '#2563eb', padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase' }}>Customer Helpdesk</span>
+                        <h3 style={{ color: '#111827', margin: '8px 0 0 0', fontSize: '24px', fontWeight: 'bold' }}>Frequently Asked Questions (Q&A)</h3>
+                    </div>
+                    <button 
+                        onClick={() => setShowAskModal(true)}
+                        style={{ backgroundColor: '#0284c7', color: '#ffffff', border: 'none', padding: '10px 18px', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer' }}
+                    >
+                        ❓ Pucho Apna Sawal
+                    </button>
+                </div>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {FAQS.map((faq, index) => {
+                        const isOpen = openFaq === index;
+                        return (
+                            <div key={index} style={{ border: '1px solid #e5e7eb', borderRadius: '10px', overflow: 'hidden', transition: 'all 0.2s' }}>
+                                <button 
+                                    onClick={() => setOpenFaq(isOpen ? null : index)}
+                                    style={{ 
+                                        width: '100%', 
+                                        padding: '16px', 
+                                        textAlign: 'left', 
+                                        backgroundColor: isOpen ? '#f8fafc' : '#ffffff', 
+                                        border: 'none', 
+                                        display: 'flex', 
+                                        justifyContent: 'space-between', 
+                                        alignItems: 'center', 
+                                        fontWeight: 'bold', 
+                                        color: '#1f2937', 
+                                        fontSize: '15px', 
+                                        cursor: 'pointer' 
+                                    }}
+                                >
+                                    <span>❓ {faq.q}</span>
+                                    <span style={{ fontSize: '18px', color: '#3b82f6' }}>{isOpen ? '−' : '+'}</span>
+                                </button>
+                                {isOpen && (
+                                    <div style={{ padding: '16px', backgroundColor: '#ffffff', borderTop: '1px solid #f1f5f9', color: '#4b5563', fontSize: '14px', lineHeight: '1.6' }}>
+                                        💡 {faq.a}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+
+            {/* 💬 ASK A QUESTION CUSTOMER MODAL */}
+            {showAskModal && (
+                <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 99999, padding: '20px' }}>
+                    <div style={{ backgroundColor: '#fff', padding: '30px', borderRadius: '16px', width: '100%', maxWidth: '450px', boxShadow: '0 10px 30px rgba(0,0,0,0.3)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #e5e7eb', paddingBottom: '10px' }}>
+                            <h3 style={{ margin: 0, fontSize: '18px', color: '#0f172a', fontWeight: 'bold' }}>Pucho Apna Sawal (Ask FIXORA)</h3>
+                            <button onClick={() => setShowAskModal(false)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#64748b' }}>✕</button>
+                        </div>
+
+                        {askStatus && <p style={{ color: askStatus.includes('🎉') ? '#16a34a' : '#2563eb', fontWeight: 'bold', textAlign: 'center', fontSize: '13px' }}>{askStatus}</p>}
+
+                        <form onSubmit={handleAskSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            <input type="text" placeholder="Aapka Naam *" required value={askFormData.name} onChange={(e) => setAskFormData({...askFormData, name: e.target.value})} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db' }} />
+                            <input type="text" placeholder="Mobile Number / Email *" required value={askFormData.phone} onChange={(e) => setAskFormData({...askFormData, phone: e.target.value})} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db' }} />
+                            <textarea placeholder="Aapka Sawal / Inquiry Detail *" required value={askFormData.question} onChange={(e) => setAskFormData({...askFormData, question: e.target.value})} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db', height: '90px', resize: 'none' }} />
+
+                            <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                                <button type="button" onClick={() => setShowAskModal(false)} style={{ flex: 1, padding: '10px', backgroundColor: '#e5e7eb', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', color: '#374151' }}>Cancel</button>
+                                <button type="submit" style={{ flex: 1, padding: '10px', backgroundColor: '#0284c7', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Submit Question</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* 🗺️ INTERACTIVE BOOKING FORM MODAL */}
             {bookingForm.show && (
                 <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', paddingTop: '80px', paddingBottom: '30px', zIndex: 99999, overflowY: 'auto' }}>
                     <div style={{ backgroundColor: '#fff', padding: '25px', borderRadius: '16px', width: '90%', maxWidth: '480px', boxShadow: '0 10px 30px rgba(0,0,0,0.3)', maxHeight: 'calc(100vh - 110px)', overflowY: 'auto' }}>

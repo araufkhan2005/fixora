@@ -1,18 +1,59 @@
 import React, { useState } from 'react';
+import axios from 'axios';
 
 function AdminLogin({ onLoginSuccess, onCancel }) {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleLoginSubmit = (e) => {
+  const handleLoginSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
 
-    if (username === 'admin' && password === 'user') {
-      onLoginSuccess();
-    } else {
-      setError('❌ Invalid Credentials! Access Denied.');
+    try {
+      // ⚡ Real Backend Login Call to get authentic JWT Token
+      const response = await axios.post('http://127.0.0.1:5000/api/auth/login', {
+        email: email,
+        password: password
+      });
+
+      const userData = response.data;
+
+      // Check if logged in user is actually an admin
+      if (userData.role !== 'admin') {
+        setError('❌ Access Denied! Only Admin accounts can access this panel.');
+        setLoading(false);
+        return;
+      }
+
+      // 🔑 Save Token & User object in LocalStorage
+      localStorage.setItem('token', userData.token);
+      localStorage.setItem('userToken', userData.token);
+      localStorage.setItem('adminToken', userData.token);
+      localStorage.setItem('user', JSON.stringify(userData));
+
+      setLoading(false);
+      
+      if (onLoginSuccess) {
+        onLoginSuccess(userData);
+      } else {
+        window.location.reload();
+      }
+
+    } catch (err) {
+      console.error("Admin Login Error:", err);
+      setLoading(false);
+      const serverMsg = err.response?.data?.message || err.response?.data?.error;
+      
+      if (serverMsg) {
+        setError(`❌ ${serverMsg}`);
+      } else if (err.code === "ERR_NETWORK") {
+        setError("❌ Backend server band hai! VS Code terminal par 'node index.js' chalao.");
+      } else {
+        setError("❌ Invalid Credentials or Server Error!");
+      }
     }
   };
 
@@ -20,7 +61,7 @@ function AdminLogin({ onLoginSuccess, onCancel }) {
     <div className="container d-flex align-items-center justify-content-center min-vh-100">
       <div className="card border-0 shadow-lg p-5 rounded-4" style={{ maxWidth: '450px', width: '100%', background: '#ffffff' }}>
         <div className="text-center mb-4">
-          <div className="mb-2" style={{ fontSize: '2.5rem', color: 'var(--primary-blue)' }}>
+          <div className="mb-2" style={{ fontSize: '2.5rem', color: '#2563eb' }}>
             <i className="fa-solid fa-shield-halved"></i>
           </div>
           <h3 className="fw-bold text-dark m-0">Admin Login Panel</h3>
@@ -31,15 +72,30 @@ function AdminLogin({ onLoginSuccess, onCancel }) {
 
         <form onSubmit={handleLoginSubmit} className="d-flex flex-column gap-3">
           <div>
-            <label className="form-label small fw-bold text-muted">Admin Username</label>
-            <input type="text" className="form-control form-input-premium p-3" placeholder="Enter username" value={username} required onChange={e => setUsername(e.target.value)} />
+            <label className="form-label small fw-bold text-muted">Admin Email Address</label>
+            <input 
+              type="email" 
+              className="form-control p-3 rounded-3" 
+              placeholder="Enter admin email" 
+              value={email} 
+              required 
+              onChange={e => setEmail(e.target.value)} 
+            />
           </div>
           <div>
             <label className="form-label small fw-bold text-muted">Secure Password</label>
-            <input type="password" className="form-control form-input-premium p-3" placeholder="••••••••••••" value={password} required onChange={e => setPassword(e.target.value)} />
+            <input 
+              type="password" 
+              className="form-control p-3 rounded-3" 
+              placeholder="••••••••••••" 
+              value={password} 
+              required 
+              onChange={e => setPassword(e.target.value)} 
+            />
           </div>
-          <button type="submit" className="btn btn-execution-pro w-100 fw-bold py-3 mt-2 rounded-3">
-            <i className="fa-solid fa-key me-2"></i>Verify & Unlock
+          <button type="submit" disabled={loading} className="btn btn-primary w-100 fw-bold py-3 mt-2 rounded-3">
+            <i className="fa-solid fa-key me-2"></i>
+            {loading ? 'Verifying & Unlocking...' : 'Verify & Unlock'}
           </button>
           <button type="button" className="btn btn-link text-muted small text-decoration-none mt-1" onClick={onCancel}>
             <i className="fa-solid fa-arrow-left me-1"></i> Back to Home
