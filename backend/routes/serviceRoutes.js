@@ -90,9 +90,32 @@ router.get('/customer-bookings/:identifier', async (req, res) => {
 // ==========================================
 router.get('/homepage-techs', async (req, res) => {
     try {
-        const technicians = await User.find({ role: 'technician' })
+        // Pehle User model me search karein
+        let technicians = await User.find({ role: 'technician' })
             .sort({ planPrice: -1, rating: -1 })
             .select('-password');
+
+        // Agar User me nahi mile, toh Technician collection se fetch karein
+        if (!technicians || technicians.length === 0) {
+            technicians = await Technician.find().sort({ planPrice: -1, rating: -1 });
+        }
+
+        res.status(200).json(technicians);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+router.get('/get-technicians', async (req, res) => {
+    try {
+        let technicians = await User.find({ role: 'technician' })
+            .sort({ planPrice: -1, rating: -1 })
+            .select('-password');
+
+        if (!technicians || technicians.length === 0) {
+            technicians = await Technician.find().sort({ planPrice: -1, rating: -1 });
+        }
+
         res.status(200).json(technicians);
     } catch (error) {
         res.status(500).json({ message: error.message });
