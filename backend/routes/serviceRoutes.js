@@ -9,6 +9,46 @@ const cloudinary = require('../config/cloudinary');
 // 🛡️ Auth Middlewares Import
 const { protect, authorize } = require('../middleware/authMiddleware');
 
+// ⚡ DEFAULT 18 TECHNICIANS DATA FOR AUTOMATIC DATABASE SEEDING
+const INITIAL_TECHNICIANS = [
+    { name: 'daksh123', email: 'daksh123@fixora.com', phone: '9876543210', role: 'technician', specialty: 'Plumbing Expert', subscriptionPlan: 'Platinum', planPrice: 51563, rating: 4.5 },
+    { name: 'Tejas', email: 'tejas@fixora.com', phone: '9876543211', role: 'technician', specialty: 'Fridge expert', subscriptionPlan: 'Platinum', planPrice: 5800, rating: 4.5 },
+    { name: 'Aarav', email: 'aarav@fixora.com', phone: '9876543212', role: 'technician', specialty: 'Electrical Services', subscriptionPlan: 'Platinum', planPrice: 5500, rating: 4.5 },
+    { name: 'Vedanth', email: 'vedanth@fixora.com', phone: '9876543213', role: 'technician', specialty: 'Washing Machine Expert', subscriptionPlan: 'Platinum', planPrice: 5500, rating: 4.5 },
+    { name: 'Vivaan', email: 'vivaan@fixora.com', phone: '9876543214', role: 'technician', specialty: 'RO', subscriptionPlan: 'Platinum', planPrice: 5199, rating: 4.5 },
+    { name: 'Ansh', email: 'ansh@fixora.com', phone: '9876543215', role: 'technician', specialty: 'AC expert', subscriptionPlan: 'Platinum', planPrice: 5050, rating: 4.5 },
+    { name: 'Gautam', email: 'gautam@fixora.com', phone: '9876543216', role: 'technician', specialty: 'Fridge expert', subscriptionPlan: 'Gold', planPrice: 4591, rating: 4.5 },
+    { name: 'Reyansh', email: 'reyansh@fixora.com', phone: '9876543217', role: 'technician', specialty: 'Electrical Services', subscriptionPlan: 'Gold', planPrice: 4500, rating: 4.5 },
+    { name: 'Kabir', email: 'kabir@fixora.com', phone: '9876543218', role: 'technician', specialty: 'Washing Machine Expert', subscriptionPlan: 'Gold', planPrice: 4100, rating: 4.5 },
+    { name: 'Arjun', email: 'arjun@fixora.com', phone: '9876543219', role: 'technician', specialty: 'RO', subscriptionPlan: 'Gold', planPrice: 3503, rating: 4.5 },
+    { name: 'Manish', email: 'manish@fixora.com', phone: '9876543220', role: 'technician', specialty: 'AC expert', subscriptionPlan: 'Gold', planPrice: 3200, rating: 4.5 },
+    { name: 'Zayan', email: 'zayan@fixora.com', phone: '9876543221', role: 'technician', specialty: 'Plumbing Expert', subscriptionPlan: 'Gold', planPrice: 3000, rating: 4.5 },
+    { name: 'Chandan', email: 'chandan@fixora.com', phone: '9876543222', role: 'technician', specialty: 'AC expert', subscriptionPlan: 'Silver', planPrice: 2800, rating: 4.5 },
+    { name: 'Rohan', email: 'rohan@fixora.com', phone: '9876543223', role: 'technician', specialty: 'Fridge expert', subscriptionPlan: 'Silver', planPrice: 2502, rating: 4.5 },
+    { name: 'Ayan', email: 'ayan@fixora.com', phone: '9876543224', role: 'technician', specialty: 'Electrical Services', subscriptionPlan: 'Silver', planPrice: 2000, rating: 4.5 },
+    { name: 'Shaurya', email: 'shaurya@fixora.com', phone: '9876543225', role: 'technician', specialty: 'RO', subscriptionPlan: 'Basic', planPrice: 1400, rating: 4.5 },
+    { name: 'Nikhil', email: 'nikhil@fixora.com', phone: '9876543226', role: 'technician', specialty: 'Plumbing Expert', subscriptionPlan: 'Basic', planPrice: 1000, rating: 4.5 },
+    { name: 'Madhav', email: 'madhav@fixora.com', phone: '9876543227', role: 'technician', specialty: 'Washing Machine Expert', subscriptionPlan: 'Basic', planPrice: 997, rating: 4.5 }
+];
+
+// Helper Function: Fetch or Auto-Seed Technicians
+const getOrSeedTechnicians = async () => {
+    let technicians = await Technician.find().sort({ planPrice: -1, rating: -1 });
+
+    if (!technicians || technicians.length === 0) {
+        technicians = await User.find({ role: 'technician' })
+            .sort({ planPrice: -1, rating: -1 })
+            .select('-password');
+    }
+
+    if (!technicians || technicians.length === 0) {
+        await Technician.insertMany(INITIAL_TECHNICIANS);
+        technicians = await Technician.find().sort({ planPrice: -1, rating: -1 });
+    }
+
+    return technicians;
+};
+
 // ==========================================
 // ☁️ CLOUDINARY IMAGE UPLOAD API
 // ==========================================
@@ -85,21 +125,11 @@ router.get('/customer-bookings/:identifier', async (req, res) => {
 });
 
 // ==========================================
-// 📥 FETCH LIVE TECHNICIANS FOR HOME & ADMIN
-// ⚡ SORTED BY HIGHEST PLAN PRICE FIRST
+// 📥 FETCH LIVE TECHNICIANS FOR HOME & ADMIN (AUTO-SEED ENABLED)
 // ==========================================
 router.get('/homepage-techs', async (req, res) => {
     try {
-        // 1. Pehle Technician collection se fetch karein (jahan Admin ke saare 18 techs hain)
-        let technicians = await Technician.find().sort({ planPrice: -1, rating: -1 });
-
-        // 2. Agar Technician mein na mile, toh User collection se try karein
-        if (!technicians || technicians.length === 0) {
-            technicians = await User.find({ role: 'technician' })
-                .sort({ planPrice: -1, rating: -1 })
-                .select('-password');
-        }
-
+        const technicians = await getOrSeedTechnicians();
         res.status(200).json(technicians);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -108,41 +138,7 @@ router.get('/homepage-techs', async (req, res) => {
 
 router.get('/get-technicians', async (req, res) => {
     try {
-        let technicians = await Technician.find().sort({ planPrice: -1, rating: -1 });
-
-        if (!technicians || technicians.length === 0) {
-            technicians = await User.find({ role: 'technician' })
-                .sort({ planPrice: -1, rating: -1 })
-                .select('-password');
-        }
-
-        res.status(200).json(technicians);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-});
-
-router.get('/get-technicians', async (req, res) => {
-    try {
-        let technicians = await User.find({ role: 'technician' })
-            .sort({ planPrice: -1, rating: -1 })
-            .select('-password');
-
-        if (!technicians || technicians.length === 0) {
-            technicians = await Technician.find().sort({ planPrice: -1, rating: -1 });
-        }
-
-        res.status(200).json(technicians);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-});
-
-router.get('/get-technicians', async (req, res) => {
-    try {
-        const technicians = await User.find({ role: 'technician' })
-            .sort({ planPrice: -1, rating: -1 })
-            .select('-password');
+        const technicians = await getOrSeedTechnicians();
         res.status(200).json(technicians);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -277,7 +273,7 @@ router.delete('/delete-tech/:id', protect, authorize('admin'), deleteTechnicianH
 router.delete('/technician/:id', protect, authorize('admin'), deleteTechnicianHandler);
 
 // ==========================================
-// 📤 ADMIN ALLOCATE TECHNICIAN ROUTE (WARNING FIXED)
+// 📤 ADMIN ALLOCATE TECHNICIAN ROUTE
 // ==========================================
 router.put('/allocate/:id', protect, authorize('admin'), async (req, res) => {
     try {
@@ -300,7 +296,7 @@ router.put('/allocate/:id', protect, authorize('admin'), async (req, res) => {
         const updated = await Booking.findByIdAndUpdate(
             req.params.id,
             { assignedTechnician: techRecord ? techRecord._id : null, status: status || "Assigned" },
-            { returnDocument: 'after' } // ⚡ Fixed Mongoose Deprecation Warning
+            { returnDocument: 'after' }
         );
 
         res.status(200).json(updated);
@@ -310,7 +306,7 @@ router.put('/allocate/:id', protect, authorize('admin'), async (req, res) => {
 });
 
 // ==========================================
-// ⚡ TECHNICIAN PORTAL UPDATE ROUTE (WARNING FIXED)
+// ⚡ TECHNICIAN PORTAL UPDATE ROUTE
 // ==========================================
 router.put('/portal-update/:id', protect, authorize('technician', 'admin'), async (req, res) => {
     try {
@@ -327,7 +323,7 @@ router.put('/portal-update/:id', protect, authorize('technician', 'admin'), asyn
         const updated = await Booking.findByIdAndUpdate(
             bookingId, 
             { $set: updateFields }, 
-            { returnDocument: 'after' } // ⚡ Fixed Mongoose Deprecation Warning
+            { returnDocument: 'after' }
         );
 
         res.status(200).json(updated);
@@ -337,14 +333,14 @@ router.put('/portal-update/:id', protect, authorize('technician', 'admin'), asyn
 });
 
 // ==========================================
-// ❌ CANCEL / REJECT JOB ROUTE (WARNING FIXED)
+// ❌ CANCEL / REJECT JOB ROUTE
 // ==========================================
 router.put('/cancel-job/:id', protect, async (req, res) => {
     try {
         const updated = await Booking.findByIdAndUpdate(
             req.params.id, 
             { status: 'Pending', assignedTechnician: null }, 
-            { returnDocument: 'after' } // ⚡ Fixed Mongoose Deprecation Warning
+            { returnDocument: 'after' }
         );
 
         if (!updated) return res.status(404).json({ message: "Job record not found!" });
@@ -355,7 +351,7 @@ router.put('/cancel-job/:id', protect, async (req, res) => {
 });
 
 // ==========================================
-// ⭐ SUBMIT CUSTOMER RATING & REVIEW ROUTE (WARNING FIXED)
+// ⭐ SUBMIT CUSTOMER RATING & REVIEW ROUTE
 // ==========================================
 router.put('/rate-service/:id', async (req, res) => {
     try {
@@ -367,7 +363,7 @@ router.put('/rate-service/:id', async (req, res) => {
         const updatedBooking = await Booking.findByIdAndUpdate(
             req.params.id,
             { $set: { rating: Number(rating), review: review || '', isRated: true } },
-            { returnDocument: 'after' } // ⚡ Fixed Mongoose Deprecation Warning
+            { returnDocument: 'after' }
         );
 
         if (!updatedBooking) {
