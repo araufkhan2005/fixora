@@ -24,14 +24,14 @@ const ServicesGrid = () => {
     const [askFormData, setAskFormData] = useState({ name: '', phone: '', question: '' });
     const [askStatus, setAskStatus] = useState('');
 
-    // 📌 SERVICE CATEGORIES CONFIGURATION
+    // 📌 SERVICE CATEGORIES CONFIGURATION (UPDATED WITH FULL MATCH KEYWORDS)
     const SERVICE_CATEGORIES = [
         { id: 'ac', title: 'AC Repair & Service', icon: '❄️', keywords: ['ac', 'air conditioner', 'cooling'] },
         { id: 'fridge', title: 'Refrigerator Repair', icon: '🧊', keywords: ['fridge', 'refrigerator', 'freezer'] },
         { id: 'washing', title: 'Washing Machine Repair', icon: '🧺', keywords: ['washing', 'washer', 'machine'] },
         { id: 'ro', title: 'RO Water Purifier Service', icon: '💧', keywords: ['ro', 'water', 'purifier', 'filter'] },
-        { id: 'electrical', title: 'Electrical Services', icon: '⚡', keywords: ['elect', 'electrician', 'wiring'] },
-        { id: 'plumbing', title: 'Plumbing Services', icon: '🔧', keywords: ['plumb', 'plumber', 'pipe'] }
+        { id: 'electrical', title: 'Electrical Services', icon: '⚡', keywords: ['electrical', 'electrician', 'wiring', 'elect'] },
+        { id: 'plumbing', title: 'Plumbing Services', icon: '🔧', keywords: ['plumbing', 'plumber', 'pipe', 'plumb'] }
     ];
 
     // ❓ FAQ DATA MATRIX
@@ -170,7 +170,7 @@ const ServicesGrid = () => {
         }, 1000);
     };
 
-    /* 🔍 EXACT WORD BOUNDARY CATEGORY FILTER */
+    /* 🔍 HYBRID CATEGORY FILTER LOGIC (Supports exact and substring matching) */
     const getTechsForCategory = (keywords) => {
         return technicians.filter(tech => {
             const catString = [
@@ -182,8 +182,12 @@ const ServicesGrid = () => {
             ].filter(Boolean).join(' ').toLowerCase();
 
             return keywords.some(key => {
-                const regex = new RegExp(`\\b${key.toLowerCase()}\\b`, 'i');
-                return regex.test(catString);
+                const cleanKey = key.toLowerCase();
+                // Avoid matching 'ac' inside 'machine'
+                if (cleanKey === 'ac' || cleanKey === 'ro') {
+                    return new RegExp(`\\b${cleanKey}\\b`, 'i').test(catString);
+                }
+                return catString.includes(cleanKey);
             });
         });
     };
