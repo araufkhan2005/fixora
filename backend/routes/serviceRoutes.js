@@ -90,14 +90,30 @@ router.get('/customer-bookings/:identifier', async (req, res) => {
 // ==========================================
 router.get('/homepage-techs', async (req, res) => {
     try {
-        // Pehle User model me search karein
-        let technicians = await User.find({ role: 'technician' })
-            .sort({ planPrice: -1, rating: -1 })
-            .select('-password');
+        // 1. Pehle Technician collection se fetch karein (jahan Admin ke saare 18 techs hain)
+        let technicians = await Technician.find().sort({ planPrice: -1, rating: -1 });
 
-        // Agar User me nahi mile, toh Technician collection se fetch karein
+        // 2. Agar Technician mein na mile, toh User collection se try karein
         if (!technicians || technicians.length === 0) {
-            technicians = await Technician.find().sort({ planPrice: -1, rating: -1 });
+            technicians = await User.find({ role: 'technician' })
+                .sort({ planPrice: -1, rating: -1 })
+                .select('-password');
+        }
+
+        res.status(200).json(technicians);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+router.get('/get-technicians', async (req, res) => {
+    try {
+        let technicians = await Technician.find().sort({ planPrice: -1, rating: -1 });
+
+        if (!technicians || technicians.length === 0) {
+            technicians = await User.find({ role: 'technician' })
+                .sort({ planPrice: -1, rating: -1 })
+                .select('-password');
         }
 
         res.status(200).json(technicians);
