@@ -825,7 +825,7 @@
                 submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin me-2"></i>Processing Request...`;
 
                 // Backend API ko POST request bheji
-                const response = await fetch('http://localhost:5000/api/services/book', {
+                const response = await fetch('https://fixora-backend-fsn5.onrender.com/api/services/book', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'

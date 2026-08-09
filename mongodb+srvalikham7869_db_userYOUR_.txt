@@ -1,0 +1,1 @@
+mongodb+srv://alikham7869_db_user:alikhan56555@cluster0.lr3govr.mongodb.net/fixora?appName=Cluster0

@@ -70,7 +70,7 @@ const ServicesGrid = () => {
     useEffect(() => {
         const fetchRankedTechs = async () => {
             try {
-                const response = await axios.get('http://localhost:5000/api/services/homepage-techs');
+                const response = await axios.get('https://fixora-backend-fsn5.onrender.com/api/services/homepage-techs');
                 setTechnicians(response.data);
                 setLoading(false);
             } catch (error) {
@@ -137,7 +137,7 @@ const ServicesGrid = () => {
         ].filter(Boolean).join(' | ');
 
         try {
-            await axios.post('http://localhost:5000/api/services/book', {
+            await axios.post('https://fixora-backend-fsn5.onrender.com/api/services/book', {
                 ...customerDetails,
                 serviceType: validServiceType,
                 customerId: bookingForm.techId || null,
