@@ -22,9 +22,10 @@ function AdminDashboard() {
   const [statusMessage, setStatusMessage] = useState({ type: '', text: '' });
   const [submitting, setSubmitting] = useState(false);
 
-  const BASE_API_URL = "http://127.0.0.1:5000/api/services";
+  // ⚡ FIXED: Live Render Production Backend API Link
+  const BASE_API_URL = "https://fixora-backend-fsn5.onrender.com/api/services";
 
-  // 🛡️ FULL-PROOF AUTH TOKEN EXTRACTOR (Fixes "token failed" error)
+  // 🛡️ FULL-PROOF AUTH TOKEN EXTRACTOR
   const getAuthToken = () => {
     const directToken = localStorage.getItem('token') || 
                         localStorage.getItem('adminToken') || 
@@ -53,6 +54,7 @@ function AdminDashboard() {
 
   const fetchIncomingQueue = async () => {
     try {
+      setLoading(true);
       const response = await fetch(BASE_API_URL);
       const data = await response.json();
       
@@ -69,11 +71,9 @@ function AdminDashboard() {
         // 🎯 DYNAMIC SMART AUTO-SELECT LOGIC FOR DROPDOWN
         const autoAllocMap = {};
         data.forEach(item => {
-          // 1. Match by ID from customer or requestedTechId
           const directId = item.requestedTechId || (typeof item.customer === 'string' ? item.customer : item.customer?._id);
           let matchedTech = techData.find(t => String(t._id) === String(directId));
 
-          // 2. Fallback: Match technician name from notes (e.g. "Requested Tech: Aarav")
           if (!matchedTech && item.notes) {
             matchedTech = techData.find(t => 
               item.notes.toLowerCase().includes(t.name.toLowerCase())
@@ -110,7 +110,7 @@ function AdminDashboard() {
     }
   };
 
-  // 🚀 UPDATED ALLOCATE TECHNICIAN WITH ROBUST TOKEN & PAYLOAD SUPPORT
+  // 🚀 ALLOCATE TECHNICIAN
   const allocateTechnician = async (id) => {
     const selectedTechId = selectedTechs[id];
     if (!selectedTechId) {
@@ -299,7 +299,6 @@ function AdminDashboard() {
       margin: 8mm;
     }
 
-    /* 1. Reset background and prevent extra blank page overflow */
     html, body {
       background: #ffffff !important;
       color: #000000 !important;
@@ -307,18 +306,15 @@ function AdminDashboard() {
       overflow: hidden !important;
     }
 
-    /* 2. Hide everything visually */
     body * {
       visibility: hidden !important;
     }
 
-    /* 3. Make ONLY invoice content and its children visible */
     #printable-invoice-content,
     #printable-invoice-content * {
       visibility: visible !important;
     }
 
-    /* 4. Reset bootstrap modal overlay height to 0 so it doesn't push a 2nd page */
     .modal {
       position: absolute !important;
       left: 0 !important;
@@ -337,7 +333,6 @@ function AdminDashboard() {
       padding: 0 !important;
     }
 
-    /* 5. Pin invoice to top-left of page 1 */
     #printable-invoice-content {
       position: absolute !important;
       left: 0 !important;
@@ -354,7 +349,6 @@ function AdminDashboard() {
       page-break-after: avoid !important;
     }
 
-    /* 6. Hide action buttons on printed PDF */
     .d-print-none,
     #printable-invoice-content .d-print-none {
       display: none !important;
@@ -878,7 +872,6 @@ function AdminDashboard() {
                 </table>
               </div>
 
-              {/* 🟢 RESTORED RIGHT SIDE UPI QR CODE */}
               <div className="bg-light p-3 rounded-3 border mb-3">
                 <div className="d-flex justify-content-between align-items-center">
                   <div>
