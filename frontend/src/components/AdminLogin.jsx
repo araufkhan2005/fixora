@@ -13,8 +13,8 @@ function AdminLogin({ onLoginSuccess, onCancel }) {
     setLoading(true);
 
     try {
-      // ⚡ Real Backend Login Call to get authentic JWT Token
-      const response = await axios.post('http://127.0.0.1:5000/api/auth/login', {
+      // ⚡ Live Render Production Backend Login Endpoint
+      const response = await axios.post('https://fixora-backend-fsn5.onrender.com/api/auth/login', {
         email: email,
         password: password
       });
@@ -50,7 +50,7 @@ function AdminLogin({ onLoginSuccess, onCancel }) {
       if (serverMsg) {
         setError(`❌ ${serverMsg}`);
       } else if (err.code === "ERR_NETWORK") {
-        setError("❌ Backend server band hai! VS Code terminal par 'node index.js' chalao.");
+        setError("❌ Server Se Connection Fail! Backend wake-up me 20-30 seconds lag sakte hain, 1 minute baad refresh karein.");
       } else {
         setError("❌ Invalid Credentials or Server Error!");
       }
