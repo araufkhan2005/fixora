@@ -1,109 +1,170 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
-function AdminLogin({ onLoginSuccess, onCancel }) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+// ⚡ Built-in Auto-Switch (Offline Localhost & Online Render)
+const isLocal = typeof window !== 'undefined' && (
+  window.location.hostname === 'localhost' ||
+  window.location.hostname === '127.0.0.1' ||
+  window.location.hostname === '[::1]'
+);
+const AUTH_API = isLocal 
+  ? 'http://127.0.0.1:5000/api/auth' 
+  : 'https://fixora-backend-fsn5.onrender.com/api/auth';
 
-  const handleLoginSubmit = async (e) => {
+const Auth = ({ onLoginSuccess }) => {
+  const [isLogin, setIsLogin] = useState(true);
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    phone: '',
+    role: 'customer',
+    specialty: '',
+    address: ''
+  });
+
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
     setLoading(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    const endpoint = isLogin ? `${AUTH_API}/login` : `${AUTH_API}/register`;
+    const payload = isLogin 
+      ? { email: formData.email.trim().toLowerCase(), password: formData.password }
+      : { ...formData, email: formData.email.trim().toLowerCase() };
 
     try {
-      // ⚡ Live Render Production Backend Login Endpoint
-      const response = await axios.post('https://fixora-backend-fsn5.onrender.com/api/auth/login', {
-        email: email,
-        password: password
-      });
-
+      const response = await axios.post(endpoint, payload);
       const userData = response.data;
-
-      // Check if logged in user is actually an admin
-      if (userData.role !== 'admin') {
-        setError('❌ Access Denied! Only Admin accounts can access this panel.');
-        setLoading(false);
-        return;
-      }
-
-      // 🔑 Save Token & User object in LocalStorage
+      
+      // 🔑 Save Token & User in LocalStorage
       localStorage.setItem('token', userData.token);
       localStorage.setItem('userToken', userData.token);
-      localStorage.setItem('adminToken', userData.token);
+      if (userData.role === 'admin') {
+        localStorage.setItem('adminToken', userData.token);
+      }
       localStorage.setItem('user', JSON.stringify(userData));
 
-      setLoading(false);
+      setSuccessMessage(isLogin ? '🎉 Login Successful!' : '✅ Account Created Successfully!');
       
-      if (onLoginSuccess) {
-        onLoginSuccess(userData);
-      } else {
-        window.location.reload();
-      }
+      setTimeout(() => {
+        if (onLoginSuccess) {
+          onLoginSuccess(userData);
+        } else {
+          window.location.reload();
+        }
+      }, 700);
 
-    } catch (err) {
-      console.error("Admin Login Error:", err);
-      setLoading(false);
-      const serverMsg = err.response?.data?.message || err.response?.data?.error;
+    } catch (error) {
+      console.error("Auth submit error:", error);
+      const serverMsg = error.response?.data?.message || error.response?.data?.error;
       
       if (serverMsg) {
-        setError(`❌ ${serverMsg}`);
-      } else if (err.code === "ERR_NETWORK") {
-        setError("❌ Server Se Connection Fail! Backend wake-up me 20-30 seconds lag sakte hain, 1 minute baad refresh karein.");
+        setErrorMessage(`❌ ${serverMsg}`);
+      } else if (error.code === "ERR_NETWORK") {
+        setErrorMessage("❌ Backend server se connection nahi hua! Terminal me backend start karein.");
       } else {
-        setError("❌ Invalid Credentials or Server Error!");
+        setErrorMessage("❌ Invalid Email ya Password!");
       }
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="container d-flex align-items-center justify-content-center min-vh-100">
-      <div className="card border-0 shadow-lg p-5 rounded-4" style={{ maxWidth: '450px', width: '100%', background: '#ffffff' }}>
-        <div className="text-center mb-4">
-          <div className="mb-2" style={{ fontSize: '2.5rem', color: '#2563eb' }}>
-            <i className="fa-solid fa-shield-halved"></i>
-          </div>
-          <h3 className="fw-bold text-dark m-0">Admin Login Panel</h3>
-          <p className="text-muted small mt-1">Fixora Authorized Personnel Only</p>
+    <div style={{ backgroundColor: '#f3f4f6', minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px', fontFamily: 'sans-serif' }}>
+      <div style={{ backgroundColor: '#ffffff', width: '100%', maxWidth: '440px', borderRadius: '16px', padding: '32px', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)', border: '1px solid #e5e7eb' }}>
+        
+        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+          <h1 style={{ margin: 0, color: '#0f172a', fontSize: '28px', fontWeight: 'bold' }}>🔧 FIXORA</h1>
+          <p style={{ margin: '6px 0 0 0', color: '#64748b', fontSize: '14px' }}>
+            {isLogin ? 'Sign in to access your portal' : 'Create an account to continue'}
+          </p>
         </div>
 
-        {error && <div className="alert alert-danger small py-2 text-center rounded-3">{error}</div>}
-
-        <form onSubmit={handleLoginSubmit} className="d-flex flex-column gap-3">
-          <div>
-            <label className="form-label small fw-bold text-muted">Admin Email Address</label>
-            <input 
-              type="email" 
-              className="form-control p-3 rounded-3" 
-              placeholder="Enter admin email" 
-              value={email} 
-              required 
-              onChange={e => setEmail(e.target.value)} 
-            />
-          </div>
-          <div>
-            <label className="form-label small fw-bold text-muted">Secure Password</label>
-            <input 
-              type="password" 
-              className="form-control p-3 rounded-3" 
-              placeholder="••••••••••••" 
-              value={password} 
-              required 
-              onChange={e => setPassword(e.target.value)} 
-            />
-          </div>
-          <button type="submit" disabled={loading} className="btn btn-primary w-100 fw-bold py-3 mt-2 rounded-3">
-            <i className="fa-solid fa-key me-2"></i>
-            {loading ? 'Verifying & Unlocking...' : 'Verify & Unlock'}
+        <div style={{ display: 'flex', backgroundColor: '#f1f5f9', borderRadius: '10px', padding: '4px', marginBottom: '20px' }}>
+          <button 
+            type="button"
+            onClick={() => { setIsLogin(true); setErrorMessage(''); }}
+            style={{ flex: 1, padding: '10px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px', backgroundColor: isLogin ? '#ffffff' : 'transparent', color: isLogin ? '#0f172a' : '#64748b', boxShadow: isLogin ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}>
+            Login
           </button>
-          <button type="button" className="btn btn-link text-muted small text-decoration-none mt-1" onClick={onCancel}>
-            <i className="fa-solid fa-arrow-left me-1"></i> Back to Home
+          <button 
+            type="button"
+            onClick={() => { setIsLogin(false); setErrorMessage(''); }}
+            style={{ flex: 1, padding: '10px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px', backgroundColor: !isLogin ? '#ffffff' : 'transparent', color: !isLogin ? '#0f172a' : '#64748b', boxShadow: !isLogin ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}>
+            Register
+          </button>
+        </div>
+
+        {errorMessage && (
+          <div style={{ padding: '12px 14px', backgroundColor: '#fee2e2', color: '#991b1b', border: '1px solid #fca5a5', borderRadius: '8px', fontSize: '13px', fontWeight: '600', marginBottom: '16px' }}>
+            {errorMessage}
+          </div>
+        )}
+        {successMessage && (
+          <div style={{ padding: '12px 14px', backgroundColor: '#dcfce7', color: '#166534', border: '1px solid #86efac', borderRadius: '8px', fontSize: '13px', fontWeight: '600', marginBottom: '16px' }}>
+            {successMessage}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          
+          {!isLogin && (
+            <>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#334155', marginBottom: '4px' }}>Full Name</label>
+                <input type="text" name="name" value={formData.name} onChange={handleChange} required placeholder="Your Name" style={{ width: '100%', padding: '11px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }} />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#334155', marginBottom: '4px' }}>Phone Number</label>
+                <input type="text" name="phone" value={formData.phone} onChange={handleChange} required placeholder="10-digit mobile number" style={{ width: '100%', padding: '11px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }} />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#334155', marginBottom: '4px' }}>Registering As:</label>
+                <select name="role" value={formData.role} onChange={handleChange} style={{ width: '100%', padding: '11px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}>
+                  <option value="customer">Customer (Book Services)</option>
+                  <option value="technician">Technician (Partner)</option>
+                  <option value="admin">Admin (Full Control)</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#334155', marginBottom: '4px' }}>Address</label>
+                <input type="text" name="address" value={formData.address} onChange={handleChange} placeholder="Area, City" style={{ width: '100%', padding: '11px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }} />
+              </div>
+            </>
+          )}
+
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#334155', marginBottom: '4px' }}>Email Address</label>
+            <input type="email" name="email" value={formData.email} onChange={handleChange} required placeholder="Enter registered email" style={{ width: '100%', padding: '11px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }} />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#334155', marginBottom: '4px' }}>Password</label>
+            <input type="password" name="password" value={formData.password} onChange={handleChange} required minLength={6} placeholder="••••••••" style={{ width: '100%', padding: '11px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }} />
+          </div>
+
+          <button type="submit" disabled={loading} style={{ width: '100%', padding: '12px', marginTop: '10px', backgroundColor: '#0284c7', color: '#ffffff', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '15px', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}>
+            {loading ? 'Processing...' : (isLogin ? 'Login' : 'Create Account')}
           </button>
         </form>
+
       </div>
     </div>
   );
-}
+};
 
-export default AdminLogin;
+export default Auth;

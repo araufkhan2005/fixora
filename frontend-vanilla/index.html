@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ServiceHub - Elite Home Appliance Operations</title>
+    <title>Fixora - Elite Home Appliance Operations</title>
 
     <!-- ⚡ DYNAMIC BRAND FAVICON -->
     <link rel="icon" type="image/svg+xml"
@@ -17,7 +17,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
 
-    <!-- 🌐 Leaflet.js Map CSS (Free & Professional) -->
+    <!-- 🌐 Leaflet.js Map CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
     <style>
@@ -41,11 +41,7 @@
             overflow-x: hidden;
         }
 
-        h1,
-        h2,
-        h3,
-        h4,
-        .navbar-brand {
+        h1, h2, h3, h4, .navbar-brand {
             font-family: 'Plus Jakarta Sans', sans-serif;
             font-weight: 800;
             letter-spacing: -1px;
@@ -96,19 +92,21 @@
             box-shadow: 0 10px 25px rgba(37, 99, 235, 0.15);
             transition: var(--transition);
             border: none;
+            text-decoration: none;
         }
 
         .btn-nav-cta:hover {
-            background: var(--text-main);
+            background: var(--accent-orange);
             transform: translateY(-2px);
-            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.2);
+            box-shadow: 0 12px 28px rgba(249, 115, 22, 0.3);
+            color: white !important;
         }
 
         /* 🎭 HERO LAYER */
         .hero-container {
             padding: 190px 0 120px 0;
             background: radial-gradient(circle at 85% 20%, rgba(37, 99, 235, 0.06), transparent 45%),
-                radial-gradient(circle at 15% 75%, rgba(249, 115, 22, 0.04), transparent 40%);
+                        radial-gradient(circle at 15% 75%, rgba(249, 115, 22, 0.04), transparent 40%);
         }
 
         .hero-tag {
@@ -416,24 +414,23 @@
 
 <body>
 
-    <!-- 🌐 CLEAN BRAND ENGINE NAVBAR -->
-    <!-- 🌐 CLEAN BRAND ENGINE NAVBAR -->
+    <!-- 🌐 BRAND ENGINE NAVBAR -->
     <nav class="navbar navbar-expand-lg navbar-light fixed-top">
         <div class="container">
             <!-- Left Side: Brand Logo & Operational Location -->
             <div class="d-flex align-items-center">
                 <a class="navbar-brand m-0" href="#">
-                    <i class="fa-solid fa-screwdriver-wrench me-2"></i><span>Service</span>Hub
+                    <i class="fa-solid fa-screwdriver-wrench me-2"></i><span>Fix</span>ora
                 </a>
                 <!-- 📍 REAL-TIME LOCATION BADGE -->
                 <span
-                    class="badge bg-light text-dark border ms-3 d-none d-sm-inline-block animate__animated animate__fadeIn"
-                    style="border-radius: 8px; padding: 6px 12px; font-weight: 600; font-size: 0.85rem; color: var(--text-main) !important;">
-                    <i class="fa-solid fa-location-dot text-danger me-1"></i> Olpad, Surat
+                    class="badge bg-light text-dark border ms-3 d-none d-sm-inline-block"
+                    style="border-radius: 8px; padding: 6px 12px; font-weight: 600; font-size: 0.85rem;">
+                    <i class="fa-solid fa-location-dot text-danger me-1"></i> Rander, Surat
                 </span>
             </div>
 
-            <!-- 📱 MOBILE MENU BUTTON (Hamburger Icon) -->
+            <!-- 📱 MOBILE MENU BUTTON -->
             <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse"
                 data-bs-target="#mainNavbarEngine" aria-controls="mainNavbarEngine" aria-expanded="false"
                 aria-label="Toggle navigation">
@@ -445,14 +442,13 @@
                 <ul class="navbar-nav gap-2 align-items-center mt-3 mt-lg-0">
                     <li class="nav-item"><a class="nav-link" href="#process-section">How It Works</a></li>
                     <li class="nav-item"><a class="nav-link" href="#services-grid-section">Services Grid</a></li>
-                    <!-- 📞 QUICK EMERGENCY HELP -->
                     <li class="nav-item">
-                        <a class="nav-link text-dark fw-semibold" href="tel:+919876543210">
+                        <a class="nav-link text-dark fw-semibold" href="https://wa.me/9978256555?text=Hello%20Fixora,%20mujhe%20booking%20mein%20help%20chahiye." target="_blank" rel="noopener noreferrer">
                             <i class="fa-solid fa-headset text-primary me-1"></i> Helpline
                         </a>
                     </li>
                     <li class="nav-item ms-lg-2">
-                        <a class="nav-link btn-nav-cta text-white px-4" href="#booking-suite-section">Book Service</a>
+                        <a class="btn btn-nav-cta text-white px-4" href="#booking-suite-section">Book Service</a>
                     </li>
                 </ul>
             </div>
@@ -464,14 +460,12 @@
         <div class="container">
             <div class="row align-items-center g-5">
                 <div class="col-lg-6" data-aos="fade-right">
-                    <span class="hero-tag"><i class="fa-solid fa-shield-halved"></i> 100% Centralized Data
-                        Privacy</span>
+                    <span class="hero-tag"><i class="fa-solid fa-shield-halved"></i> 100% Centralized Data Privacy</span>
                     <h1 class="hero-title">Smart <span>Home Utility</span> & Appliance <em>Fixes</em>.</h1>
                     <p class="lead text-muted mb-4 fs-5">Book high-tier verified technicians instantly without exposing
                         your private contact details. Complete workflow security monitored directly by us.</p>
                     <div class="d-flex gap-3 mt-2">
-                        <a href="#booking-suite-section" class="btn btn-nav-cta btn-lg px-5 py-3 shadow">Book Service
-                            Line</a>
+                        <a href="#booking-suite-section" class="btn btn-nav-cta btn-lg px-5 py-3 shadow">Book Service Line</a>
                         <a href="#services-grid-section"
                             class="btn btn-light btn-lg px-4 py-3 border text-dark fw-semibold"
                             style="border-radius:var(--radius-md);">Explore Matrix</a>
@@ -481,8 +475,7 @@
                     <div class="hero-display-grid">
                         <img src="https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=800&q=80"
                             alt="Corporate Engineer Workflow" class="hero-img-card">
-                        <div
-                            class="floating-widget-pro animate__animated animate__pulse animate__infinite animate__slower">
+                        <div class="floating-widget-pro">
                             <div class="widget-accent-box"><i class="fa-solid fa-circle-check"></i></div>
                             <div>
                                 <h5 class="fw-bold m-0 p-0 fs-6 text-dark">KYC Audited</h5>
@@ -548,8 +541,7 @@
                 <div class="card grid-card-pro">
                     <div class="icon-container-pro"><i class="fa-solid fa-snowflake"></i></div>
                     <h4>AC Operations</h4>
-                    <p>Cooling configuration, structural gas calibration, and full core compressor tuning diagnostics.
-                    </p>
+                    <p>Cooling configuration, structural gas calibration, and full core compressor tuning diagnostics.</p>
                 </div>
             </div>
             <div class="col-md-6 col-lg-3" data-aos="fade-up" data-aos-delay="200">
@@ -573,41 +565,15 @@
                     <p>Filter membrane swap pipelines, automated TDS balance auditing, and leakage defense tuning.</p>
                 </div>
             </div>
-            <div class="col-md-4" data-aos="fade-up" data-aos-delay="500">
-                <div class="card grid-card-pro">
-                    <div class="icon-container-pro"><i class="fa-solid fa-fire-burner"></i></div>
-                    <h4>Geyser System</h4>
-                    <p>Heating element structural descaling, safe pressure valve testing, and thermostat replacement
-                        mappings.</p>
-                </div>
-            </div>
-            <div class="col-md-4" data-aos="fade-up" data-aos-delay="600">
-                <div class="card grid-card-pro">
-                    <div class="icon-container-pro"><i class="fa-solid fa-bolt"></i></div>
-                    <h4>Electrician Elite</h4>
-                    <p>High-voltage short circuit diagnosis, internal structural wiring updates, and distribution board
-                        overhauls.</p>
-                </div>
-            </div>
-            <div class="col-md-4" data-aos="fade-up" data-aos-delay="700">
-                <div class="card grid-card-pro">
-                    <div class="icon-container-pro"><i class="fa-solid fa-wrench"></i></div>
-                    <h4>Plumbing Network</h4>
-                    <p>Pressure leakage isolation, copper/PVC pipeline network routing, and high-end fixture mappings.
-                    </p>
-                </div>
-            </div>
         </div>
     </section>
 
-    <!-- 📝 EXECUTIVE BOOKING COMPONENT WITH INTEGRATED MAP MAP -->
+    <!-- 📝 EXECUTIVE BOOKING COMPONENT WITH INTEGRATED MAP -->
     <section id="booking-suite-section" class="py-5 bg-white border-top border-bottom">
         <div class="container" style="max-width: 780px;" data-aos="zoom-in">
             <div class="card suite-form-card border-0">
-                <h2 class="fw-bold text-center mb-2 text-dark">Book a <span style="color: var(--primary-blue);">Verified
-                        Technician</span></h2>
-                <p class="text-muted text-center mb-5">Apni details bharein aur kuch hi der mein certified expert
-                    technician aapke doorstep par hoga.</p>
+                <h2 class="fw-bold text-center mb-2 text-dark">Book a <span style="color: var(--primary-blue);">Verified Technician</span></h2>
+                <p class="text-muted text-center mb-5">Apni details bharein aur kuch hi der mein certified expert technician aapke doorstep par hoga.</p>
 
                 <form id="serviceForm">
                     <div class="row g-4">
@@ -622,7 +588,7 @@
                                 placeholder="10-digit mobile number" required>
                         </div>
 
-                        <!-- 🗺️ REALS MAP INTEGRATION CONTAINER -->
+                        <!-- 🗺️ REAL MAP INTEGRATION CONTAINER -->
                         <div class="col-12">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <label class="form-label m-0">Pin Your Location (Map)</label>
@@ -631,10 +597,8 @@
                                 </button>
                             </div>
                             <div id="map" class="mb-2"></div>
-                            <span class="text-muted small"><i class="fa-solid fa-info-circle me-1"></i> Aap marker ko
-                                drag karke apni exact home location pin kar sakte hain.</span>
+                            <span class="text-muted small"><i class="fa-solid fa-info-circle me-1"></i> Aap marker ko drag karke apni exact home location pin kar sakte hain.</span>
 
-                            <!-- Hidden coordinates values to pass to backend database -->
                             <input type="hidden" id="latitude">
                             <input type="hidden" id="longitude">
                         </div>
@@ -649,13 +613,12 @@
                             <label class="form-label">Select Service / Appliance</label>
                             <select class="form-select form-select-premium" id="serviceType" required>
                                 <option value="" selected disabled>Choose appliance to repair...</option>
-                                <option value="AC">AC Service & Repair</option>
-                                <option value="Refrigerator">Refrigerator / Fridge</option>
-                                <option value="Washing Machine">Washing Machine</option>
-                                <option value="RO Water Purifier">RO Water Purifier</option>
-                                <option value="Geyser">Geyser Repair</option>
-                                <option value="Electrician">Electrician Services</option>
-                                <option value="Plumber">Plumber Services</option>
+                                <option value="AC Repair & Service">AC Service & Repair</option>
+                                <option value="Refrigerator Repair">Refrigerator / Fridge</option>
+                                <option value="Washing Machine Repair">Washing Machine</option>
+                                <option value="RO Water Purifier Service">RO Water Purifier</option>
+                                <option value="Electrical Services">Electrician Services</option>
+                                <option value="Plumbing Services">Plumber Services</option>
                             </select>
                         </div>
                     </div>
@@ -664,7 +627,7 @@
                     </button>
                 </form>
 
-                <div id="responseMessage" class="alert mt-4 d-none animate__animated animate__fadeIn"></div>
+                <div id="responseMessage" class="alert mt-4 d-none"></div>
             </div>
         </div>
     </section>
@@ -673,18 +636,16 @@
     <footer class="footer-premium">
         <div class="container">
             <div class="row g-4">
-                <!-- Column 1: Brand Info -->
                 <div class="col-lg-4 col-md-6">
                     <div class="footer-brand">
-                        <i class="fa-solid fa-screwdriver-wrench me-2"></i><span>Service</span>Hub
+                        <i class="fa-solid fa-screwdriver-wrench me-2"></i><span>Fix</span>ora
                     </div>
                     <p class="text-muted small pe-lg-4" style="line-height: 1.7;">
-                        ServiceHub on-demand household services platform hai jo appliance engineering ko smooth, swift
+                        Fixora on-demand household services platform hai jo appliance engineering ko smooth, swift
                         aur complete numeric privacy masking ke saath doorstep par secure deliver karta hai.
                     </p>
                 </div>
 
-                <!-- Column 2: Core Offerings -->
                 <div class="col-lg-3 col-md-6">
                     <h5 class="footer-links-title">Our Services</h5>
                     <ul class="footer-list">
@@ -692,34 +653,29 @@
                         <li><a href="#services-grid-section">Smart Refrigerator Service</a></li>
                         <li><a href="#services-grid-section">Washing Machine Setup</a></li>
                         <li><a href="#services-grid-section">RO Purifier TDS Auditing</a></li>
-                        <li><a href="#services-grid-section">Geyser & Utility Operations</a></li>
                     </ul>
                 </div>
 
-                <!-- Column 3: Corporate Mappings -->
                 <div class="col-lg-2 col-md-6">
                     <h5 class="footer-links-title">Quick Navigation</h5>
                     <ul class="footer-list">
                         <li><a href="#">Home Base</a></li>
                         <li><a href="#process-section">How It Works</a></li>
                         <li><a href="#booking-suite-section">Book Form</a></li>
-                        <li><a href="#">Privacy Policy</a></li>
-                        <li><a href="#">Terms & Conditions</a></li>
                     </ul>
                 </div>
 
-                <!-- Column 4: Operational Center Details -->
                 <div class="col-lg-3 col-md-6">
                     <h5 class="footer-links-title">Operational Center</h5>
                     <ul class="footer-list footer-contact-info">
                         <li class="text-muted small">
-                            <i class="fa-solid fa-location-dot"></i> Olpad Area, Surat, Gujarat, 394540
+                            <i class="fa-solid fa-location-dot"></i> Rander Area, Surat, Gujarat, 395005
                         </li>
                         <li class="text-muted small">
-                            <i class="fa-solid fa-envelope"></i> support@servicehub.com
+                            <i class="fa-solid fa-envelope"></i> support@fixora.com
                         </li>
                         <li class="text-muted small">
-                            <i class="fa-solid fa-phone"></i> +91 98765 43210 (Secure Operations)
+                            <i class="fa-solid fa-phone"></i> +91 99782 56555
                         </li>
                         <li class="text-muted small">
                             <i class="fa-solid fa-clock"></i> Mon - Sun: 8:00 AM - 9:00 PM
@@ -728,10 +684,9 @@
                 </div>
             </div>
 
-            <!-- Bottom Note -->
             <div class="row footer-bottom text-center text-md-start">
                 <div class="col-md-6">
-                    <p class="m-0">&copy; 2026 ServiceHub Inc. All Operational Rights Reserved.</p>
+                    <p class="m-0">&copy; 2026 Fixora Inc. All Operational Rights Reserved.</p>
                 </div>
                 <div class="col-md-6 text-md-end mt-2 mt-md-0">
                     <p class="m-0">Designed for Secure Multi-Service Deployments.</p>
@@ -743,89 +698,88 @@
     <!-- 🟢 SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
-
-    <!-- 🌐 Leaflet Map JavaScript Bundle -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
         AOS.init({ duration: 900, once: true });
 
-        // ==========================================
-        // 🗺️ LEAFLET FREE MAP RENDERING ENGINE
-        // ==========================================
-        // Default Coordinates set to Surat/Olpad region
-        const defaultLat = 21.1702;
-        const defaultLng = 72.8311;
+        // ⚡ AUTO-SWITCH API URL (Localhost vs Live Render)
+        const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname === '';
+        const BASE_API_URL = isLocalhost 
+            ? 'http://127.0.0.1:5000/api/services' 
+            : 'https://fixora-backend-fsn5.onrender.com/api/services';
 
-        // Map Initialize kiya
+        // ==========================================
+        // 🗺️ LEAFLET MAP RENDERING ENGINE
+        // ==========================================
+        const defaultLat = 21.2185;
+        const defaultLng = 72.7933;
+
         const map = L.map('map').setView([defaultLat, defaultLng], 13);
 
-        // OpenStreetMap Open tiles source map render karne ke liye
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
 
-        // Draggable Brand Pin Marker lagaya
         let marker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(map);
 
-        // Jab user marker drag karega toh automated hidden coordinates field change honge
         function updateCoordinates(lat, lng) {
             document.getElementById('latitude').value = lat.toFixed(6);
             document.getElementById('longitude').value = lng.toFixed(6);
         }
-        updateCoordinates(defaultLat, defaultLng); // Initial set
+        updateCoordinates(defaultLat, defaultLng);
 
         marker.on('dragend', function (e) {
             const position = marker.getLatLng();
             updateCoordinates(position.lat, position.lng);
         });
 
-        // 🛰️ HTML5 BROWSER GEOLOCATION (Detect Location Feature)
+        // 🛰️ BROWSER GEOLOCATION
         document.getElementById('btnDetectGPS').addEventListener('click', () => {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition((position) => {
                     const userLat = position.coords.latitude;
                     const userLng = position.coords.longitude;
 
-                    // Map view aur marker ko user ki real location par jump karaya
                     map.setView([userLat, userLng], 16);
                     marker.setLatLng([userLat, userLng]);
                     updateCoordinates(userLat, userLng);
 
-                    alert('🚀 Location successfully tracked via secure GPS tracking system!');
+                    alert('🚀 Location successfully tracked via GPS!');
                 }, (error) => {
                     alert('❌ GPS Access Denied. Please enable location permissions in browser settings.');
                 });
             } else {
-                alert('❌ Your device browser does not support high-precision geolocation tracking.');
+                alert('❌ Your device browser does not support geolocation tracking.');
             }
         });
+
         // ==========================================
-        // ⚡ LIVE BACKEND INTEGRATION ENGINE (FETCH API)
+        // ⚡ BOOKING SUBMIT HANDLER
         // ==========================================
         document.getElementById('serviceForm').addEventListener('submit', async (e) => {
-            e.preventDefault(); // Form submit hone par page reload ko rokne ke liye
+            e.preventDefault();
 
             const responseMessage = document.getElementById('responseMessage');
             const submitBtn = e.target.querySelector('button[type="submit"]');
 
-            // Saara data elements se utha kar object banaya
+            const lat = document.getElementById('latitude').value;
+            const lng = document.getElementById('longitude').value;
+            const gpsLink = (lat && lng) ? `https://www.google.com/maps?q=${lat},${lng}` : '';
+
             const bookingData = {
                 clientName: document.getElementById('clientName').value,
                 phone: document.getElementById('phone').value,
                 address: document.getElementById('address').value,
                 serviceType: document.getElementById('serviceType').value,
-                latitude: document.getElementById('latitude').value,
-                longitude: document.getElementById('longitude').value
+                notes: gpsLink ? `GPS Pin: ${gpsLink}` : ''
             };
 
             try {
-                // Button par smooth loading animation toggle ki
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin me-2"></i>Processing Request...`;
 
-                // Backend API ko POST request bheji
-                const response = await fetch('https://fixora-backend-fsn5.onrender.com/api/services/book', {
+                const response = await fetch(`${BASE_API_URL}/book`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -834,26 +788,22 @@
                 });
 
                 const result = await response.json();
-
-                // Status messages handle karne ke liye classes reset ki
                 responseMessage.classList.remove('d-none', 'alert-success', 'alert-danger');
 
                 if (response.status === 201 || response.status === 200) {
                     responseMessage.classList.add('alert-success');
                     responseMessage.innerHTML = `🎉 <strong>Mubarak Ho!</strong> Booking successfully register ho gayi hai aur Admin queue mein bhej di gayi hai.`;
-                    e.target.reset(); // Booking ke baad form clear karne ke liye
+                    e.target.reset();
                 } else {
                     responseMessage.classList.add('alert-danger');
                     responseMessage.innerHTML = `❌ <strong>Error:</strong> ${result.message || 'Booking complete nahi ho payi.'}`;
                 }
 
             } catch (error) {
-                // Agar node.js server band ho ya network problem ho
                 responseMessage.classList.remove('d-none', 'alert-success');
                 responseMessage.classList.add('alert-danger');
-                responseMessage.innerHTML = `❌ <strong>Server Connection Error:</strong> Backend server ya MongoDB respond nahi kar raha hai!`;
+                responseMessage.innerHTML = `❌ <strong>Server Connection Error:</strong> Backend server respond nahi kar raha hai!`;
             } finally {
-                // Button ko wapas normal state mein laaye
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = `<i class="fa-solid fa-circle-check me-2"></i>Book Service Now`;
             }

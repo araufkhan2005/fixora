@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import { API_BASE_URL } from '../apiConfig';
 
-const API_BASE = "http://127.0.0.1:5000/api/services";
+const API_BASE = `${API_BASE_URL}/services`;
 
 function CustomerDashboard({ user, onBackHome }) {
   const [bookings, setBookings] = useState([]);
@@ -19,19 +20,19 @@ function CustomerDashboard({ user, onBackHome }) {
   const [reviewComment, setReviewComment] = useState('');
   const [submittingRating, setSubmittingRating] = useState(false);
 
-  const fetchBookings = async (identifier = null) => {
+  const fetchBookings = useCallback(async (identifier = null) => {
     setLoading(true);
     setCurrentPage(1);
     try {
       let target = identifier;
       
-      if (target === null || target === undefined) {
+      if (target === null || target === undefined || target === '') {
         target = user?._id || user?.phone || localStorage.getItem('lastBookingPhone') || '';
       }
 
       let url = API_BASE;
       if (target && String(target).trim() !== '' && target !== 'undefined' && target !== 'null') {
-        url = `${API_BASE}/customer-bookings/${String(target).trim()}`;
+        url = `${API_BASE}/customer-bookings/${encodeURIComponent(String(target).trim())}`;
       }
 
       const res = await axios.get(url);
@@ -42,11 +43,11 @@ function CustomerDashboard({ user, onBackHome }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     fetchBookings(savedPhone || null);
-  }, [user]);
+  }, [fetchBookings, savedPhone]);
 
   const getStatusStep = (status) => {
     switch (status) {
@@ -58,11 +59,18 @@ function CustomerDashboard({ user, onBackHome }) {
     }
   };
 
-  // 🗺️ HELPER TO CONVERT MAP URL IN NOTES TO CLICKABLE LINK (PIC 1 FIX)
+  // Safe Stars Renderer (Prevents repeat() RangeError crash)
+  const renderStars = (ratingNum) => {
+    const validRating = Math.max(1, Math.min(5, Math.round(Number(ratingNum) || 5)));
+    const filled = '★'.repeat(validRating);
+    const empty = '☆'.repeat(5 - validRating);
+    return `${filled}${empty}`;
+  };
+
   const renderNotesWithLinks = (notesText) => {
     if (!notesText) return null;
     const urlRegex = /(https?:\/\/[^\s]+)/g;
-    const parts = notesText.split(urlRegex);
+    const parts = String(notesText).split(urlRegex);
 
     return parts.map((part, i) => {
       if (part.match(urlRegex)) {
@@ -89,7 +97,7 @@ function CustomerDashboard({ user, onBackHome }) {
     setSubmittingRating(true);
     try {
       const res = await axios.put(`${API_BASE}/rate-service/${ratingModalJob._id}`, {
-        rating: selectedStars,
+        rating: Number(selectedStars),
         review: reviewComment
       });
 
@@ -108,7 +116,7 @@ function CustomerDashboard({ user, onBackHome }) {
   const indexOfLastBooking = currentPage * itemsPerPage;
   const indexOfFirstBooking = indexOfLastBooking - itemsPerPage;
   const currentBookings = bookings.slice(indexOfFirstBooking, indexOfLastBooking);
-  const totalPages = Math.ceil(bookings.length / itemsPerPage);
+  const totalPages = Math.ceil(bookings.length / itemsPerPage) || 1;
 
   const handlePageChange = (newPage) => {
     if (newPage >= 1 && newPage <= totalPages) {
@@ -150,7 +158,9 @@ function CustomerDashboard({ user, onBackHome }) {
       </div>
 
       {loading ? (
-        <div className="text-center py-5 text-muted"><i className="fa-solid fa-spinner fa-spin me-2"></i> Loading live bookings...</div>
+        <div className="text-center py-5 text-muted">
+          <i className="fa-solid fa-spinner fa-spin me-2"></i> Loading live bookings...
+        </div>
       ) : bookings.length === 0 ? (
         <div className="bg-white border rounded-4 p-5 text-center shadow-sm">
           <h5 className="fw-bold text-muted mb-2">No Bookings Found</h5>
@@ -162,12 +172,20 @@ function CustomerDashboard({ user, onBackHome }) {
           <div className="d-flex flex-column gap-3">
             {currentBookings.map((item) => {
               const step = getStatusStep(item.status);
+              const bookingIdStr = String(item._id || '').slice(-6).toUpperCase();
+              const techName = typeof item.assignedTechnician === 'object' 
+                ? item.assignedTechnician?.name 
+                : (item.technician || 'Assigned');
+              const techPhone = typeof item.assignedTechnician === 'object' 
+                ? item.assignedTechnician?.phone 
+                : '';
+
               return (
                 <div key={item._id} className="bg-white border rounded-4 p-4 shadow-sm border-start border-4 border-primary">
                   <div className="d-flex justify-content-between align-items-start mb-2">
                     <div>
                       <h5 className="fw-bold m-0 text-dark">{item.serviceType}</h5>
-                      <small className="text-muted">Booking ID: #{item._id.slice(-6).toUpperCase()}</small>
+                      <small className="text-muted">Booking ID: #{bookingIdStr}</small>
                     </div>
                     <span className={`badge ${item.status === 'Completed' ? 'bg-success' : item.status === 'Accepted' ? 'bg-info' : item.status === 'Assigned' ? 'bg-primary' : 'bg-warning'} px-3 py-2 rounded-3 fw-bold`}>
                       {item.status || 'Pending'}
@@ -193,7 +211,7 @@ function CustomerDashboard({ user, onBackHome }) {
                   <div className="row g-2 small text-muted mt-1">
                     <div className="col-12 col-md-6">👤 <b>Client:</b> {item.clientName} ({item.phone})</div>
                     <div className="col-12 col-md-6">📍 <b>Address:</b> {item.address}</div>
-                    <div className="col-12 col-md-6">📅 <b>Scheduled:</b> {item.bookingDate} ({item.bookingTime})</div>
+                    <div className="col-12 col-md-6">📅 <b>Scheduled:</b> {item.bookingDate || 'Today'} ({item.bookingTime || 'Morning'})</div>
                     
                     {/* 🔧 CLICKABLE GPS LINK IN NOTES */}
                     {item.notes && (
@@ -204,7 +222,7 @@ function CustomerDashboard({ user, onBackHome }) {
 
                     {item.assignedTechnician && (
                       <div className="col-12 mt-2 pt-2 border-top text-dark fw-bold">
-                        👨‍🔧 Technician: {item.assignedTechnician.name || item.technician || 'Assigned'} {item.assignedTechnician.phone ? `(📞 ${item.assignedTechnician.phone})` : ''}
+                        👨‍🔧 Technician: {techName} {techPhone ? `(📞 ${techPhone})` : ''}
                       </div>
                     )}
                     {item.applianceImage && (
@@ -221,9 +239,9 @@ function CustomerDashboard({ user, onBackHome }) {
                     <div className="mt-3 pt-3 border-top d-flex justify-content-between align-items-center flex-wrap gap-2">
                       {item.isRated ? (
                         <div className="bg-light p-2 rounded-3 border w-100">
-                          <span className="fw-bold text-warning">{'★'.repeat(item.rating)}{'☆'.repeat(5 - item.rating)}</span>
-                          <span className="small text-muted ms-2 fw-bold">({item.rating}/5 Stars Given)</span>
-                          {item.review && <p className="small text-dark m-0 mt-1 italic">"{item.review}"</p>}
+                          <span className="fw-bold text-warning fs-6">{renderStars(item.rating)}</span>
+                          <span className="small text-muted ms-2 fw-bold">({item.rating || 5}/5 Stars Given)</span>
+                          {item.review && <p className="small text-dark m-0 mt-1 fst-italic">"{item.review}"</p>}
                         </div>
                       ) : (
                         <button 
@@ -293,12 +311,12 @@ function CustomerDashboard({ user, onBackHome }) {
               <form onSubmit={handleRatingSubmit}>
                 <div className="text-center mb-3">
                   <p className="small text-muted mb-2">Service: <b>{ratingModalJob.serviceType}</b></p>
-                  <div className="fs-2 text-warning pointer">
+                  <div className="fs-2 text-warning" style={{ cursor: 'pointer' }}>
                     {[1, 2, 3, 4, 5].map((star) => (
                       <span 
                         key={star} 
                         onClick={() => setSelectedStars(star)} 
-                        style={{ cursor: 'pointer', margin: '0 4px' }}
+                        style={{ cursor: 'pointer', margin: '0 4px', userSelect: 'none' }}
                       >
                         {star <= selectedStars ? '★' : '☆'}
                       </span>

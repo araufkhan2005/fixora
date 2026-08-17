@@ -9,7 +9,7 @@ const cloudinary = require('../config/cloudinary');
 // 🛡️ Auth Middlewares Import
 const { protect, authorize } = require('../middleware/authMiddleware');
 
-// 📥 Helper Function: Direct Database Fetch Logic (No Default Dummy Seed)
+// 📥 Helper Function: Direct Database Fetch Logic
 const getTechniciansFromDB = async () => {
     let technicians = await Technician.find().sort({ planPrice: -1, rating: -1 });
 
@@ -23,20 +23,25 @@ const getTechniciansFromDB = async () => {
 };
 
 // ==========================================
-// ☁️ CLOUDINARY IMAGE UPLOAD API
+// ☁️ IMAGE UPLOAD API (OFFLINE BASE64 + CLOUDINARY FALLBACK)
 // ==========================================
 router.post('/upload-image', async (req, res) => {
     try {
         const { imageBase64 } = req.body;
         if (!imageBase64) return res.status(400).json({ message: 'No image provided' });
 
-        const uploadResponse = await cloudinary.uploader.upload(imageBase64, {
-            folder: 'fixora_uploads'
-        });
-
-        res.status(200).json({ url: uploadResponse.secure_url });
+        // ⚡ Offline-Safe: Agar internet na ho toh direct Base64 URL use karega
+        try {
+            const uploadResponse = await cloudinary.uploader.upload(imageBase64, {
+                folder: 'fixora_uploads'
+            });
+            return res.status(200).json({ url: uploadResponse.secure_url });
+        } catch (cloudErr) {
+            console.log("⚡ Offline Mode Active: Saving Base64 image directly.");
+            return res.status(200).json({ url: imageBase64 });
+        }
     } catch (error) {
-        console.error("Cloudinary upload error:", error);
+        console.error("Image upload error:", error);
         res.status(500).json({ message: "Image upload failed", error: error.message });
     }
 });
@@ -246,7 +251,7 @@ router.delete('/delete-tech/:id', protect, authorize('admin'), deleteTechnicianH
 router.delete('/technician/:id', protect, authorize('admin'), deleteTechnicianHandler);
 
 // ==========================================
-// 📤 ADMIN ALLOCATE TECHNICIAN ROUTE
+// 📤 ADMIN ALLOCATE TECHNICIAN ROUTE (ENHANCED DUAL LOOKUP)
 // ==========================================
 router.put('/allocate/:id', protect, authorize('admin'), async (req, res) => {
     try {
@@ -255,13 +260,15 @@ router.put('/allocate/:id', protect, authorize('admin'), async (req, res) => {
 
         if (technician && typeof technician === 'string' && technician.trim() !== "") {
             if (mongoose.Types.ObjectId.isValid(technician)) {
-                techRecord = await User.findById(technician);
+                techRecord = await User.findById(technician) || await Technician.findById(technician);
             } else {
                 const baseName = technician.split(' (')[0].trim();
                 const escapedName = baseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                 techRecord = await User.findOne({ 
                     name: { $regex: new RegExp(`^${escapedName}$`, "i") }, 
                     role: 'technician' 
+                }) || await Technician.findOne({
+                    name: { $regex: new RegExp(`^${escapedName}$`, "i") }
                 });
             }
         }
@@ -269,7 +276,7 @@ router.put('/allocate/:id', protect, authorize('admin'), async (req, res) => {
         const updated = await Booking.findByIdAndUpdate(
             req.params.id,
             { assignedTechnician: techRecord ? techRecord._id : null, status: status || "Assigned" },
-            { returnDocument: 'after' }
+            { new: true, returnDocument: 'after' }
         );
 
         res.status(200).json(updated);
@@ -296,7 +303,7 @@ router.put('/portal-update/:id', protect, authorize('technician', 'admin'), asyn
         const updated = await Booking.findByIdAndUpdate(
             bookingId, 
             { $set: updateFields }, 
-            { returnDocument: 'after' }
+            { new: true, returnDocument: 'after' }
         );
 
         res.status(200).json(updated);
@@ -313,7 +320,7 @@ router.put('/cancel-job/:id', protect, async (req, res) => {
         const updated = await Booking.findByIdAndUpdate(
             req.params.id, 
             { status: 'Pending', assignedTechnician: null }, 
-            { returnDocument: 'after' }
+            { new: true, returnDocument: 'after' }
         );
 
         if (!updated) return res.status(404).json({ message: "Job record not found!" });
@@ -336,7 +343,7 @@ router.put('/rate-service/:id', async (req, res) => {
         const updatedBooking = await Booking.findByIdAndUpdate(
             req.params.id,
             { $set: { rating: Number(rating), review: review || '', isRated: true } },
-            { returnDocument: 'after' }
+            { new: true, returnDocument: 'after' }
         );
 
         if (!updatedBooking) {

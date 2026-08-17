@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { API_BASE_URL } from '../apiConfig';
 
-const API_BASE = "http://127.0.0.1:5000/api/services";
+// ⚡ Auto-switch API BASE
+const API_BASE = `${API_BASE_URL}/services`;
 
 function BookingForm({ currentUser }) {
   const [formData, setFormData] = useState({

@@ -1,30 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
+// ⚡ Auto-switch API Base (Offline Localhost & Online Render)
+const isLocalhost = typeof window !== 'undefined' && (
+  window.location.hostname === 'localhost' ||
+  window.location.hostname === '127.0.0.1' ||
+  window.location.hostname === '[::1]'
+);
+
+const API_BASE = isLocalhost 
+  ? 'http://127.0.0.1:5000/api/services' 
+  : 'https://fixora-backend-fsn5.onrender.com/api/services';
+
 const ServicesGrid = () => {
     const [technicians, setTechnicians] = useState([]);
     const [loading, setLoading] = useState(true);
     const [bookingForm, setBookingForm] = useState({ show: false, techId: '', techName: '' });
     
-    /* ⚡ Customer details with GPS coordinates */
     const [customerDetails, setCustomerDetails] = useState({ clientName: '', phone: '', address: '', serviceType: '', coordinates: '' });
     const [bookingStatus, setBookingStatus] = useState('');
 
-    /* 🟠 MAP & HOVER CONTROLS */
     const [hoveredTechId, setHoveredTechId] = useState(null);
     const [isGeoHovered, setIsGeoHovered] = useState(false);
     const [mapCenter, setMapCenter] = useState("Rander, Surat");
     const [geoLoading, setGeoLoading] = useState(false);
 
-    /* ❓ FAQ ACCORDION STATE */
     const [openFaq, setOpenFaq] = useState(null);
-
-    /* 💬 ASK A QUESTION MODAL STATE */
     const [showAskModal, setShowAskModal] = useState(false);
     const [askFormData, setAskFormData] = useState({ name: '', phone: '', question: '' });
     const [askStatus, setAskStatus] = useState('');
 
-    // 📌 SERVICE CATEGORIES CONFIGURATION (UPDATED WITH FULL MATCH KEYWORDS)
     const SERVICE_CATEGORIES = [
         { id: 'ac', title: 'AC Repair & Service', icon: '❄️', keywords: ['ac', 'air conditioner', 'cooling'] },
         { id: 'fridge', title: 'Refrigerator Repair', icon: '🧊', keywords: ['fridge', 'refrigerator', 'freezer'] },
@@ -34,7 +39,6 @@ const ServicesGrid = () => {
         { id: 'plumbing', title: 'Plumbing Services', icon: '🔧', keywords: ['plumbing', 'plumber', 'pipe', 'plumb'] }
     ];
 
-    // ❓ FAQ DATA MATRIX
     const FAQS = [
         {
             q: "Fixora par service book karne ki visiting inspection fee kitni hai?",
@@ -46,19 +50,14 @@ const ServicesGrid = () => {
         },
         {
             q: "Live GPS Satellite Pin-Drop kaise kaam karta hai?",
-            a: "Booking karte waqt 'Drop My Live Location Pin' button par click karte hi aapke browser se exact GPS coordinates capture ho jate hain, jisse technician 1-click Google Maps navigation se aapke ghar pohochta hai."
+            a: "Booking karte waqt 'Drop My Live Location Pin' button par click karte hi aapke browser se exact GPS coordinates capture ho jate hain."
         },
         {
             q: "Main service complete hone ke baad payment kaise kar sakta hu?",
-            a: "Service complete hone par technician dwara generated instant digital invoice par UPI QR Code scan karke ya Cash ke zariye direct payment kar sakte hain."
-        },
-        {
-            q: "Service request book hone ke kitne time mein technician assign hota hai?",
-            a: "Aapki booking submit hote hi Admin Operations Center se Priority Ranking Engine ke tehat nearest top-rated expert minutes mein auto-dispatch ho jata hai."
+            a: "Service complete hone par instant invoice par UPI QR Code scan karke ya Cash ke zariye payment kar sakte hain."
         }
     ];
 
-    // 🎯 DYNAMIC PRICE TIER RATING CALCULATOR
     const calculateDynamicRating = (tech) => {
         const price = Number(tech.planPrice) || 0;
         if (price >= 5000) return '4.9';
@@ -70,8 +69,8 @@ const ServicesGrid = () => {
     useEffect(() => {
         const fetchRankedTechs = async () => {
             try {
-                const response = await axios.get('https://fixora-backend-fsn5.onrender.com/api/services/homepage-techs');
-                setTechnicians(response.data);
+                const response = await axios.get(`${API_BASE}/homepage-techs`);
+                setTechnicians(Array.isArray(response.data) ? response.data : []);
                 setLoading(false);
             } catch (error) {
                 console.error("Error fetching ranked technicians:", error);
@@ -87,7 +86,6 @@ const ServicesGrid = () => {
         setMapCenter("Rander, Surat");
     };
 
-    /* 📍 GEOLOCATION PIN DROP LOGIC */
     const handleFetchLocation = () => {
         if (navigator.geolocation) {
             setGeoLoading(true);
@@ -103,7 +101,7 @@ const ServicesGrid = () => {
                     }));
                     setGeoLoading(false);
                 },
-                (error) => {
+                () => {
                     alert("Location access denied. Please type your full address manually.");
                     setGeoLoading(false);
                 },
@@ -137,40 +135,54 @@ const ServicesGrid = () => {
         ].filter(Boolean).join(' | ');
 
         try {
-            await axios.post('https://fixora-backend-fsn5.onrender.com/api/services/book', {
+            await axios.post(`${API_BASE}/book`, {
                 ...customerDetails,
                 serviceType: validServiceType,
                 customerId: bookingForm.techId || null,
                 requestedTechId: bookingForm.techId || null,
                 notes: notesPayload
             });
+
+            if (customerDetails.phone) {
+                localStorage.setItem('lastBookingPhone', customerDetails.phone.trim());
+            }
             
             setBookingStatus('🎉 Booking Request Sent to Admin Dashboard! Fixed Visiting Fee: ₹99');
             setTimeout(() => {
                 setBookingForm({ show: false, techId: '', techName: '' });
                 setCustomerDetails({ clientName: '', phone: '', address: '', serviceType: '', coordinates: '' });
                 setBookingStatus('');
-            }, 3000);
+            }, 2500);
         } catch (error) {
-            setBookingStatus('❌ Booking failed: ' + (error.response?.data?.error || error.message));
+            setBookingStatus('❌ Booking failed: ' + (error.response?.data?.message || error.message));
         }
     };
 
-    /* ❓ ASK A QUESTION FORM SUBMIT */
-    const handleAskSubmit = (e) => {
+    /* ❓ LIVE ASK A QUESTION SUBMISSION TO ADMIN DASHBOARD */
+    const handleAskSubmit = async (e) => {
         e.preventDefault();
         setAskStatus('Transmitting question to helpdesk...');
-        setTimeout(() => {
-            setAskStatus('🎉 Aapka sawal submit ho gaya hai! FIXORA Support Team jald hi aap se contact karegi.');
+
+        try {
+            await axios.post(`${API_BASE}/book`, {
+                clientName: askFormData.name,
+                phone: askFormData.phone,
+                address: 'Helpdesk Web Inquiry',
+                serviceType: 'Helpdesk Inquiry',
+                notes: `❓ Customer Question: "${askFormData.question}"`
+            });
+
+            setAskStatus('🎉 Aapka sawal Admin Helpdesk ko bhej diya gaya hai!');
             setTimeout(() => {
                 setShowAskModal(false);
                 setAskStatus('');
                 setAskFormData({ name: '', phone: '', question: '' });
-            }, 2500);
-        }, 1000);
+            }, 2000);
+        } catch (error) {
+            setAskStatus('❌ Failed to submit inquiry: ' + (error.response?.data?.message || error.message));
+        }
     };
 
-    /* 🔍 HYBRID CATEGORY FILTER LOGIC (Supports exact and substring matching) */
     const getTechsForCategory = (keywords) => {
         return technicians.filter(tech => {
             const catString = [
@@ -183,7 +195,6 @@ const ServicesGrid = () => {
 
             return keywords.some(key => {
                 const cleanKey = key.toLowerCase();
-                // Avoid matching 'ac' inside 'machine'
                 if (cleanKey === 'ac' || cleanKey === 'ro') {
                     return new RegExp(`\\b${cleanKey}\\b`, 'i').test(catString);
                 }
@@ -192,7 +203,6 @@ const ServicesGrid = () => {
         });
     };
 
-    /* 🖼️ DIRECT DATABASE PHOTO & BASE64 HELPER */
     const getTechnicianImage = (tech) => {
         return tech.photo || tech.image || '';
     };
@@ -340,7 +350,7 @@ const ServicesGrid = () => {
                 </div>
             </div>
 
-            {/* ❓ 3. INTERACTIVE Q&A / FAQ ACCORDION SECTION WITH "ASK QUESTION" BUTTON */}
+            {/* ❓ 3. FAQ ACCORDION SECTION */}
             <div style={{ maxWidth: '850px', margin: '0 auto 40px auto', backgroundColor: '#ffffff', border: '1px solid #e5e7eb', borderRadius: '16px', padding: '30px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', flexWrap: 'wrap', gap: '15px' }}>
                     <div>
@@ -359,7 +369,7 @@ const ServicesGrid = () => {
                     {FAQS.map((faq, index) => {
                         const isOpen = openFaq === index;
                         return (
-                            <div key={index} style={{ border: '1px solid #e5e7eb', borderRadius: '10px', overflow: 'hidden', transition: 'all 0.2s' }}>
+                            <div key={index} style={{ border: '1px solid #e5e7eb', borderRadius: '10px', overflow: 'hidden' }}>
                                 <button 
                                     onClick={() => setOpenFaq(isOpen ? null : index)}
                                     style={{ 
@@ -391,7 +401,7 @@ const ServicesGrid = () => {
                 </div>
             </div>
 
-            {/* 💬 ASK A QUESTION CUSTOMER MODAL */}
+            {/* 💬 ASK A QUESTION MODAL */}
             {showAskModal && (
                 <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 99999, padding: '20px' }}>
                     <div style={{ backgroundColor: '#fff', padding: '30px', borderRadius: '16px', width: '100%', maxWidth: '450px', boxShadow: '0 10px 30px rgba(0,0,0,0.3)' }}>
@@ -416,7 +426,7 @@ const ServicesGrid = () => {
                 </div>
             )}
 
-            {/* 🗺️ INTERACTIVE BOOKING FORM MODAL */}
+            {/* 🗺️ INTERACTIVE BOOKING MODAL */}
             {bookingForm.show && (
                 <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', paddingTop: '80px', paddingBottom: '30px', zIndex: 99999, overflowY: 'auto' }}>
                     <div style={{ backgroundColor: '#fff', padding: '25px', borderRadius: '16px', width: '90%', maxWidth: '480px', boxShadow: '0 10px 30px rgba(0,0,0,0.3)', maxHeight: 'calc(100vh - 110px)', overflowY: 'auto' }}>
