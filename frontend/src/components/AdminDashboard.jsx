@@ -281,6 +281,130 @@ function AdminDashboard() {
     }
   };
 
+  // 🖨️ 100% WORKING ISOLATED A4 PDF PRINT FUNCTION
+  const handlePrintPDF = (job, mode) => {
+    const printWin = window.open('', '_blank', 'width=900,height=800');
+    if (!printWin) {
+      alert("⚠️ Browser popup blocked! Please allow popups to print invoice.");
+      return;
+    }
+
+    const sparePartsRows = (job.spareParts || []).map((part, index) => `
+      <tr>
+        <td style="padding: 10px; border-bottom: 1px solid #e2e8f0;">${index + 2}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #e2e8f0;">Spare Part: ${part.name}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: bold;">₹${part.price}</td>
+      </tr>
+    `).join('');
+
+    const upiQr = `https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=${encodeURIComponent(`upi://pay?pa=fixora@upi&pn=FIXORA%20Services&am=${job.totalAmount || 350}&cu=INR`)}`;
+
+    printWin.document.open();
+    printWin.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Invoice - FIX-${String(job._id).slice(-6).toUpperCase()}</title>
+        <style>
+          * { box-sizing: border-box; font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 0; }
+          body { background: #ffffff; color: #0f172a; padding: 35px; }
+          .invoice-card { max-width: 780px; margin: 0 auto; border: 1px solid #cbd5e1; border-radius: 12px; padding: 32px; }
+          .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #2563eb; padding-bottom: 18px; margin-bottom: 22px; }
+          .brand h1 { font-size: 28px; color: #2563eb; font-weight: 800; letter-spacing: 1px; }
+          .brand p { font-size: 13px; color: #64748b; margin-top: 4px; }
+          .inv-meta { text-align: right; }
+          .inv-meta h2 { font-size: 20px; color: #0f172a; margin-bottom: 4px; }
+          .inv-meta p { font-size: 13px; color: #475569; }
+          .details-grid { display: flex; justify-content: space-between; gap: 20px; margin-bottom: 24px; }
+          .details-box { flex: 1; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; font-size: 13px; line-height: 1.6; }
+          .details-box strong { color: #1e293b; font-size: 14px; display: block; margin-bottom: 6px; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 24px; font-size: 13px; }
+          th { background: #0f172a; color: #ffffff; text-align: left; padding: 10px 12px; font-size: 12px; text-transform: uppercase; }
+          td { padding: 12px; border-bottom: 1px solid #e2e8f0; }
+          .total-row td { background: #f1f5f9; font-weight: bold; font-size: 15px; color: #16a34a; }
+          .payment-box { display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; margin-bottom: 20px; font-size: 13px; }
+          .badge-paid { background: #16a34a; color: #ffffff; padding: 6px 14px; border-radius: 6px; font-weight: bold; font-size: 12px; }
+          .footer { text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px dashed #cbd5e1; padding-top: 16px; }
+        </style>
+      </head>
+      <body>
+        <div class="invoice-card">
+          <div class="header">
+            <div class="brand">
+              <h1>FIXORA</h1>
+              <p>Elite Home Appliance Repair & Maintenance Platform</p>
+            </div>
+            <div class="inv-meta">
+              <h2>TAX INVOICE</h2>
+              <p><b>Invoice #:</b> FIX-${String(job._id).slice(-6).toUpperCase()}</p>
+              <p><b>Date:</b> ${new Date().toLocaleDateString('en-IN')}</p>
+            </div>
+          </div>
+
+          <div class="details-grid">
+            <div class="details-box">
+              <strong>Customer Details:</strong>
+              <div>Name: <b>${job.clientName || 'Customer'}</b></div>
+              <div>Phone: ${job.phone || 'N/A'}</div>
+              <div>Address: ${job.address || 'Service Location'}</div>
+            </div>
+            <div class="details-box">
+              <strong>Service & Expert:</strong>
+              <div>Service: <b>${job.serviceType || 'Appliance Repair'}</b></div>
+              <div>Assigned Tech: <b>${job.assignedTechnician?.name || job.technician || 'Certified Tech'}</b></div>
+              <div>Status: <span style="color: #16a34a; font-weight: bold;">✓ Job Completed</span></div>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 40px;">#</th>
+                <th>Service / Item Description</th>
+                <th style="text-align: right; width: 120px;">Amount (₹)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>1</td>
+                <td>Visiting Charge & Diagnostic Inspection Fee</td>
+                <td style="text-align: right; font-weight: bold;">₹350</td>
+              </tr>
+              ${sparePartsRows}
+              <tr class="total-row">
+                <td colspan="2" style="text-align: right;">Grand Total:</td>
+                <td style="text-align: right;">₹${job.totalAmount || 350}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="payment-box">
+            <div>
+              <strong>Payment Status:</strong>
+              <div>Method: <b>${mode === 'Cash' ? '💵 Cash Payment' : '📱 UPI / Online Transfer'}</b></div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 16px;">
+              ${mode === 'UPI' ? `<img src="${upiQr}" alt="UPI QR" style="width: 75px; height: 75px; border: 1px solid #cbd5e1; border-radius: 6px; padding: 2px;" />` : ''}
+              <span class="badge-paid">✓ PAID & VERIFIED</span>
+            </div>
+          </div>
+
+          <div class="footer">
+            Thank you for choosing FIXORA! This is a system-generated invoice for college defense demonstration.
+          </div>
+        </div>
+      </body>
+      </html>
+    `);
+
+    printWin.document.close();
+    printWin.focus();
+    setTimeout(() => {
+      printWin.print();
+      printWin.close();
+    }, 400);
+  };
+
   // 🔍 SEPARATING INQUIRIES FROM REPAIR BOOKINGS
   const inquiriesList = queue.filter(item => 
     item.serviceType === 'Helpdesk Inquiry' || 
@@ -309,22 +433,8 @@ function AdminDashboard() {
 
   return (
     <div className="container-fluid px-4 py-4" style={{ marginTop: '30px' }}>
-      
-      {/* 🖨️ A4 PRINT CSS */}
-      <style>{`
-        @media print {
-          @page { size: A4 portrait; margin: 8mm; }
-          html, body { background: #ffffff !important; color: #000000 !important; height: 100% !important; overflow: hidden !important; }
-          body * { visibility: hidden !important; }
-          #printable-invoice-content, #printable-invoice-content * { visibility: visible !important; }
-          .modal { position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; height: auto !important; background: transparent !important; padding: 0 !important; margin: 0 !important; }
-          .modal-dialog { max-width: 100% !important; margin: 0 !important; padding: 0 !important; }
-          #printable-invoice-content { position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; max-height: 98vh !important; margin: 0 !important; padding: 20px !important; border: 1px solid #1e293b !important; border-radius: 8px !important; background: #ffffff !important; box-shadow: none !important; }
-          .d-print-none, #printable-invoice-content .d-print-none { display: none !important; }
-        }
-      `}</style>
 
-      {/* HEADER SECTION WITH INQUIRIES BUTTON NEXT TO REVENUE */}
+      {/* HEADER SECTION */}
       <div className="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4 flex-wrap gap-2">
         <div>
           <h4 className="fw-bold m-0 text-dark"><i className="fa-solid fa-lock text-danger me-2"></i>FIXORA Operations Command Center</h4>
@@ -340,7 +450,7 @@ function AdminDashboard() {
             📊 {showAnalytics ? 'Hide Analytics' : 'Revenue Analytics'}
           </button>
 
-          {/* 💬 NEW SEPARATE INQUIRIES BUTTON (NEXT TO REVENUE) */}
+          {/* 💬 INQUIRIES BUTTON */}
           <button 
             className={`btn btn-sm ${showInquiries ? 'btn-warning text-dark' : 'btn-outline-warning text-dark'} fw-bold rounded-3`}
             onClick={() => { setShowInquiries(!showInquiries); setShowAnalytics(false); }}
@@ -371,7 +481,7 @@ function AdminDashboard() {
         </div>
       </div>
 
-      {/* METRICS GRID (ONLY REPAIRS COUNT) */}
+      {/* METRICS GRID */}
       <div className="row g-3 mb-4">
         <div className="col-6 col-md-3">
           <div className="bg-white border rounded-4 p-3 shadow-sm border-start border-primary border-4">
@@ -399,7 +509,7 @@ function AdminDashboard() {
         </div>
       </div>
 
-      {/* 💬 DEDICATED SEPARATE CUSTOMER INQUIRIES PANEL */}
+      {/* 💬 CUSTOMER INQUIRIES PANEL */}
       {showInquiries && (
         <div className="bg-white border rounded-4 p-4 shadow-sm mb-4 border-start border-4 border-warning">
           <div className="d-flex justify-content-between align-items-center mb-3">
@@ -478,7 +588,7 @@ function AdminDashboard() {
         </div>
       )}
 
-      {/* REVENUE ANALYTICS PANEL */}
+      {/* 📊 REVENUE ANALYTICS PANEL */}
       {showAnalytics && (
         <div className="bg-white border rounded-4 p-4 shadow-sm mb-4 border-start border-4 border-success">
           <h5 className="fw-bold text-dark mb-3">💰 Business Revenue & Profit Analytics</h5>
@@ -511,7 +621,7 @@ function AdminDashboard() {
         </div>
       )}
 
-      {/* DIRECTORY */}
+      {/* 👥 DIRECTORY */}
       {showTechList && (
         <div className="bg-white border rounded-4 p-4 shadow-sm mb-4">
           <h5 className="fw-bold text-dark mb-3">Registered Technicians Directory</h5>
@@ -543,7 +653,7 @@ function AdminDashboard() {
         </div>
       )}
 
-      {/* REGISTER FORM */}
+      {/* ➕ REGISTER FORM */}
       {showAddForm && (
         <div className="bg-white border rounded-4 p-4 shadow-sm mb-4 border-primary border-3">
           <h6 className="fw-bold text-dark mb-3 fs-5">Register New Technician Account</h6>
@@ -602,7 +712,7 @@ function AdminDashboard() {
         </div>
       )}
 
-      {/* 📋 MASTER REPAIR REQUESTS (CLEAN TABLE - ONLY APPLIANCE REPAIRS) */}
+      {/* 📋 MASTER REPAIR REQUESTS */}
       {loading ? (
         <div className="text-center py-5 text-muted"><i className="fa-solid fa-spinner fa-spin me-2 fs-4"></i> Synchronizing database queue...</div>
       ) : (
@@ -743,7 +853,7 @@ function AdminDashboard() {
         </div>
       )}
 
-      {/* PROOFS MODAL */}
+      {/* 🔍 PROOFS MODAL */}
       {selectedJobProof && (
         <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1050 }}>
           <div className="modal-dialog modal-dialog-centered modal-lg">
@@ -807,9 +917,9 @@ function AdminDashboard() {
       {invoiceJob && (
         <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 1060 }}>
           <div className="modal-dialog modal-dialog-centered modal-lg">
-            <div className="modal-content rounded-4 p-4 shadow bg-white" id="printable-invoice-content">
+            <div className="modal-content rounded-4 p-4 shadow bg-white">
               
-              <div className="d-flex align-items-center justify-content-between bg-light p-3 rounded-3 border mb-3 d-print-none">
+              <div className="d-flex align-items-center justify-content-between bg-light p-3 rounded-3 border mb-3">
                 <span className="fw-bold text-dark small">Select Payment Mode:</span>
                 <div className="btn-group" role="group">
                   <button type="button" className={`btn btn-sm fw-bold ${paymentMode === 'Cash' ? 'btn-success' : 'btn-outline-secondary'}`} onClick={() => setPaymentMode('Cash')}>
@@ -909,9 +1019,15 @@ function AdminDashboard() {
                 </div>
               </div>
 
-              <div className="d-flex justify-content-end gap-2 border-top pt-3 d-print-none">
+              <div className="d-flex justify-content-end gap-2 border-top pt-3">
                 <button onClick={() => setInvoiceJob(null)} className="btn btn-sm btn-outline-secondary fw-bold rounded-3">Close</button>
-                <button onClick={() => window.print()} className="btn btn-sm btn-success fw-bold rounded-3 px-4">🖨️ Download / Print PDF Invoice</button>
+                <button 
+                  type="button" 
+                  onClick={() => handlePrintPDF(invoiceJob, paymentMode)} 
+                  className="btn btn-sm btn-success fw-bold rounded-3 px-4"
+                >
+                  🖨️ Download / Print PDF Invoice
+                </button>
               </div>
 
             </div>

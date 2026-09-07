@@ -101,7 +101,7 @@ const Footer = () => {
                             <span style={{ color: '#2563eb' }}>📞</span> <a href="tel:+919978256555" onMouseEnter={() => setHoveredId('p1')} onMouseLeave={() => setHoveredId(null)} style={{ color: hoveredId === 'p1' ? '#F97316' : '#4b5563', textDecoration: 'none' }}>+91 99782 56555</a>
                         </div>
                         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                            <span style={{ color: '#2563eb' }}>🕒</span> <span>Mon - Sun: 8:00 AM - 9:00 PM</span>
+                            <span style={{ color: '#2563eb' }}>🕒</span> <span>Mon - Fri: 8:00 AM - 9:00 PM</span>
                         </div>
                     </div>
 
